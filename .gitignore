@@ -7,9 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-SERVIRE DESKTOP/backend/node_modules
-SERVIRE DESKTOP/frontend/node_modules
+# Node modules in all directories
+**/node_modules/
+
 .env
+.env*.local
 dist
 dist-ssr
 *.local
@@ -24,3 +26,30 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# React Native / Expo specific
+.expo/
+web-build/
+expo-env.d.ts
+
+# Native builds
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Generated native folders
+/ios
+/android
+
+# macOS
+*.pem
+
+# TypeScript
+*.tsbuildinfo

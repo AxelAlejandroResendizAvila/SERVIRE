@@ -1,28 +1,57 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
+import { getSpaces } from '../services/api';
 
-const FILTERS = ['Todos', 'Laboratorios', 'Aulas', 'Salas de reuniones'];
-
-const SPACES = [
-    { id: '1', name: 'Laboratorio de Física', location: 'Edificio A, Piso 2', type: 'Laboratorios', available: true },
-    { id: '2', name: 'Aula Magna 1', location: 'Edificio Principal', type: 'Aulas', available: false },
-    { id: '3', name: 'Sala de Estudio B', location: 'Biblioteca, Piso 1', type: 'Salas de reuniones', available: true },
-    { id: '4', name: 'Laboratorio de Química', location: 'Edificio C, Piso 1', type: 'Laboratorios', available: true },
-];
+const FILTERS = ['Todos', 'Laboratorios', 'Aulas', 'Salas de reuniones', 'General'];
 
 export default function ExplorarEspacios({ navigation }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('Todos');
+    const [spaces, setSpaces] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-    const filteredSpaces = SPACES.filter(space => {
+    useEffect(() => {
+        fetchSpaces();
+    }, []);
+
+    const fetchSpaces = async () => {
+        try {
+            setLoading(true);
+            setError('');
+            const data = await getSpaces();
+            setSpaces(data || []);
+        } catch (err) {
+            console.error('Error fetching spaces:', err);
+            setError('Error al cargar los espacios');
+            Alert.alert('Error', 'No se pudieron cargar los espacios');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredSpaces = spaces.filter(space => {
         const matchesFilter = activeFilter === 'Todos' || space.type === activeFilter;
         const matchesSearch = space.name.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesFilter && matchesSearch;
     });
+
+    const getTypeIcon = (type) => {
+        switch (type) {
+            case 'Laboratorios':
+                return 'flask';
+            case 'Aulas':
+                return 'book';
+            case 'Salas de reuniones':
+                return 'people';
+            default:
+                return 'business';
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -64,28 +93,55 @@ export default function ExplorarEspacios({ navigation }) {
             </View>
 
             <ScrollView contentContainerStyle={styles.listContainer}>
-                {filteredSpaces.map(space => (
-                    <TouchableOpacity
-                        key={space.id}
-                        onPress={() => navigation.navigate('FeaturesStack', { screen: 'FormularioReservas' })}
-                    >
-                        <Card style={styles.spaceCard}>
-                            <View style={styles.spaceIconContainer}>
-                                <Ionicons name="business" size={24} color={theme.colors.primary} />
-                            </View>
-                            <View style={styles.spaceInfo}>
-                                <Text style={styles.spaceName}>{space.name}</Text>
-                                <Text style={styles.spaceLocation}>{space.location}</Text>
-                            </View>
-                            <View style={[
-                                styles.statusDot,
-                                { backgroundColor: space.available ? theme.colors.status.success : theme.colors.status.warning }
-                            ]} />
-                        </Card>
-                    </TouchableOpacity>
-                ))}
-                {filteredSpaces.length === 0 && (
-                    <Text style={styles.emptyText}>No se encontraron espacios.</Text>
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={styles.loadingText}>Cargando espacios...</Text>
+                    </View>
+                ) : error ? (
+                    <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
+                        <Text style={styles.errorText}>{error}</Text>
+                        <TouchableOpacity style={styles.retryButton} onPress={fetchSpaces}>
+                            <Text style={styles.retryText}>Reintentar</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <>
+                        {filteredSpaces.map(space => (
+                            <TouchableOpacity
+                                key={space.id}
+                                onPress={() => navigation.navigate('FeaturesStack', { 
+                                    screen: 'FormularioReservas',
+                                    params: { space }
+                                })}
+                            >
+                                <Card style={styles.spaceCard}>
+                                    <View style={styles.spaceIconContainer}>
+                                        <Ionicons 
+                                            name={getTypeIcon(space.type)} 
+                                            size={24} 
+                                            color={theme.colors.primary} 
+                                        />
+                                    </View>
+                                    <View style={styles.spaceInfo}>
+                                        <Text style={styles.spaceName}>{space.name}</Text>
+                                        <Text style={styles.spaceType}>{space.type}</Text>
+                                        <Text style={styles.spaceCapacity}>
+                                            Capacidad: {space.capacity} personas
+                                        </Text>
+                                    </View>
+                                    <View style={[
+                                        styles.statusDot,
+                                        { backgroundColor: space.state === 'disponible' ? theme.colors.status.success : theme.colors.status.warning }
+                                    ]} />
+                                </Card>
+                            </TouchableOpacity>
+                        ))}
+                        {filteredSpaces.length === 0 && (
+                            <Text style={styles.emptyText}>No se encontraron espacios.</Text>
+                        )}
+                    </>
                 )}
             </ScrollView>
         </View>
@@ -146,6 +202,38 @@ const styles = StyleSheet.create({
     listContainer: {
         padding: theme.spacing.lg,
     },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xl * 2,
+    },
+    loadingText: {
+        marginTop: theme.spacing.md,
+        ...theme.typography.body,
+        color: theme.colors.text.secondary,
+    },
+    errorContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xl * 2,
+    },
+    errorText: {
+        ...theme.typography.body,
+        marginTop: theme.spacing.md,
+        textAlign: 'center',
+        color: theme.colors.error,
+    },
+    retryButton: {
+        marginTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.borderRadius.md,
+    },
+    retryText: {
+        color: theme.colors.text.inverse,
+        fontWeight: 'bold',
+    },
     spaceCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -166,9 +254,16 @@ const styles = StyleSheet.create({
         ...theme.typography.subheader,
         fontSize: 16,
     },
-    spaceLocation: {
+    spaceType: {
         ...theme.typography.caption,
         marginTop: 2,
+        color: theme.colors.text.secondary,
+    },
+    spaceCapacity: {
+        ...theme.typography.caption,
+        marginTop: 2,
+        fontSize: 12,
+        color: theme.colors.text.secondary,
     },
     statusDot: {
         width: 12,

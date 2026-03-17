@@ -1,18 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
 import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { Ionicons } from '@expo/vector-icons';
+import { authRegister } from '../services/api';
 
 export default function RegistroScreen({ navigation }) {
-    const [name, setName] = useState('');
+    const [nombre, setNombre] = useState('');
+    const [apellidos, setApellidos] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [telefono, setTelefono] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleRegister = () => {
-        // Move back to login after registration
-        navigation.navigate('Login');
+    const handleRegister = async () => {
+        // Validación
+        if (!nombre || !apellidos || !email || !password || !confirmPassword) {
+            setError('Por favor completa todos los campos');
+            return;
+        }
+
+        if (!email.includes('@')) {
+            setError('Por favor ingresa un email válido');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError('Las contraseñas no coinciden');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const response = await authRegister({
+                nombre,
+                apellidos,
+                email,
+                contrasena: password,
+                telefono: telefono || '',
+            });
+
+            if (response.token && response.usuario) {
+                Alert.alert('Éxito', 'Te has registrado correctamente. ¡Bienvenido!');
+                navigation.replace('MainTabs');
+            } else {
+                setError('Error en la respuesta del servidor');
+            }
+        } catch (err) {
+            console.error('Error en registro:', err);
+            setError(err.message || 'Error al registrarse');
+            Alert.alert('Error', err.message || 'Error al registrarse');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -29,38 +79,80 @@ export default function RegistroScreen({ navigation }) {
                 <Text style={styles.title}>Crea una cuenta</Text>
                 <Text style={styles.subtitle}>Crea una cuenta para empezar a reservar espacios.</Text>
 
+                {error ? (
+                    <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                ) : null}
+
                 <View style={styles.formContainer}>
                     <InputField
-                        label="Nombre completo"
-                        placeholder="John Doe"
-                        value={name}
-                        onChangeText={setName}
+                        label="Nombre"
+                        placeholder="John"
+                        value={nombre}
+                        onChangeText={setNombre}
                         icon={<Ionicons name="person-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
+                    />
+
+                    <InputField
+                        label="Apellidos"
+                        placeholder="Doe"
+                        value={apellidos}
+                        onChangeText={setApellidos}
+                        icon={<Ionicons name="person-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
                     />
 
                     <InputField
                         label="Correo electrónico"
-                        placeholder="Introduce tu correo"
+                        placeholder="john@example.com"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
                         icon={<Ionicons name="mail-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
+                    />
+
+                    <InputField
+                        label="Teléfono (opcional)"
+                        placeholder="+34 123 456 789"
+                        value={telefono}
+                        onChangeText={setTelefono}
+                        keyboardType="phone-pad"
+                        icon={<Ionicons name="call-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
                     />
 
                     <InputField
                         label="Contraseña"
-                        placeholder="Introduce tu contraseña"
+                        placeholder="Mínimo 6 caracteres"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
                         icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
+                    />
+
+                    <InputField
+                        label="Confirmar contraseña"
+                        placeholder="Repite tu contraseña"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry
+                        icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                        editable={!loading}
                     />
 
                     <Button
-                        title="Registrarse"
+                        title={loading ? "Registrando..." : "Registrarse"}
                         onPress={handleRegister}
                         style={styles.registerButton}
+                        disabled={loading}
                     />
+
+                    {loading && <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />}
 
                 </View>
 
@@ -106,12 +198,30 @@ const styles = StyleSheet.create({
         ...theme.typography.body,
         marginBottom: theme.spacing.xl,
     },
+    errorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+        borderLeftWidth: 4,
+        borderLeftColor: theme.colors.error || '#dc3545',
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderRadius: 4,
+    },
+    errorText: {
+        color: theme.colors.error || '#dc3545',
+        marginLeft: theme.spacing.md,
+        flex: 1,
+    },
     formContainer: {
         width: '100%',
     },
     registerButton: {
         marginTop: theme.spacing.md,
         marginBottom: theme.spacing.xl,
+    },
+    loader: {
+        marginTop: theme.spacing.md,
     },
     footer: {
         flexDirection: 'row',

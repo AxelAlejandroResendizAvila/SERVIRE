@@ -1,0 +1,262 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { config } from '../config';
+
+const API_BASE_URL = config.baseURL;
+
+// =====================================================
+// UTILITIES
+// =====================================================
+
+/**
+ * Obtiene el token almacenado en el dispositivo
+ */
+export const getToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('authToken');
+    return token;
+  } catch (error) {
+    console.error('Error obteniendo token:', error);
+    return null;
+  }
+};
+
+/**
+ * Almacena el token en el dispositivo
+ */
+export const saveToken = async (token) => {
+  try {
+    await AsyncStorage.setItem('authToken', token);
+  } catch (error) {
+    console.error('Error guardando token:', error);
+  }
+};
+
+/**
+ * Elimina el token del dispositivo
+ */
+export const removeToken = async () => {
+  try {
+    await AsyncStorage.removeItem('authToken');
+  } catch (error) {
+    console.error('Error eliminando token:', error);
+  }
+};
+
+/**
+ * Realiza una solicitud HTTP con manejo de errores
+ */
+const apiCall = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+
+  // Si hay un token, lo agregamos al header
+  const token = await getToken();
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
+  const requestOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {}),
+    },
+  };
+
+  try {
+    const response = await fetch(url, requestOptions);
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(`Error en ${endpoint}:`, error);
+    throw error;
+  }
+};
+
+// =====================================================
+// AUTENTICACIÓN
+// =====================================================
+
+/**
+ * Registra un nuevo usuario
+ * @param {Object} userData - { nombre, apellidos, email, contrasena, telefono }
+ * @returns {Promise} - { token, usuario }
+ */
+export const authRegister = async (userData) => {
+  const response = await apiCall('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+
+  if (response.token) {
+    await saveToken(response.token);
+  }
+
+  return response;
+};
+
+/**
+ * Inicia sesión con email y contraseña
+ * @param {string} email
+ * @param {string} contrasena
+ * @returns {Promise} - { token, usuario }
+ */
+export const authLogin = async (email, contrasena) => {
+  const response = await apiCall('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, contrasena }),
+  });
+
+  if (response.token) {
+    await saveToken(response.token);
+  }
+
+  return response;
+};
+
+/**
+ * Cierra sesión limpiando el token local
+ */
+export const authLogout = async () => {
+  await removeToken();
+};
+
+/**
+ * Verifica si el usuario tiene token válido
+ */
+export const isAuthenticated = async () => {
+  const token = await getToken();
+  return !!token;
+};
+
+// =====================================================
+// ESPACIOS (SPACES)
+// =====================================================
+
+/**
+ * Obtiene la lista de todos los espacios disponibles
+ * @returns {Promise} - Array de espacios
+ */
+export const getSpaces = async () => {
+  return apiCall('/espacios', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Obtiene los detalles de un espacio específico
+ * @param {number} spaceId
+ * @returns {Promise} - Datos del espacio
+ */
+export const getSpaceById = async (spaceId) => {
+  return apiCall(`/espacios/${spaceId}`, {
+    method: 'GET',
+  });
+};
+
+// =====================================================
+// RESERVAS (RESERVATIONS)
+// =====================================================
+
+/**
+ * Crea una nueva reserva
+ * @param {Object} reservationData - { id_espacio, fecha_inicio, fecha_fin, precio_total }
+ * @returns {Promise} - Datos de la reserva creada
+ */
+export const createReservation = async (reservationData) => {
+  return apiCall('/reservas', {
+    method: 'POST',
+    body: JSON.stringify(reservationData),
+  });
+};
+
+/**
+ * Obtiene las reservas del usuario autenticado
+ * @returns {Promise} - Array de reservas del usuario
+ */
+export const getMyReservations = async () => {
+  return apiCall('/reservas/mis-reservas', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Obtiene todas las reservas (solo admin)
+ * @returns {Promise} - Array de todas las reservas
+ */
+export const getAllReservations = async () => {
+  return apiCall('/reservas/admin', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Obtiene los detalles de una reserva específica
+ * @param {number} reservationId
+ * @returns {Promise} - Datos de la reserva
+ */
+export const getReservationById = async (reservationId) => {
+  return apiCall(`/reservas/${reservationId}`, {
+    method: 'GET',
+  });
+};
+
+/**
+ * Cancela una reserva
+ * @param {number} reservationId
+ * @returns {Promise}
+ */
+export const cancelReservation = async (reservationId) => {
+  return apiCall(`/reservas/${reservationId}`, {
+    method: 'DELETE',
+  });
+};
+
+/**
+ * Actualiza una reserva
+ * @param {number} reservationId
+ * @param {Object} updateData
+ * @returns {Promise}
+ */
+export const updateReservation = async (reservationId, updateData) => {
+  return apiCall(`/reservas/${reservationId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updateData),
+  });
+};
+
+// =====================================================
+// EXPORT DEFAULT
+// =====================================================
+
+export default {
+  // Auth
+  authRegister,
+  authLogin,
+  authLogout,
+  isAuthenticated,
+  getToken,
+  saveToken,
+  removeToken,
+
+  // Spaces
+  getSpaces,
+  getSpaceById,
+
+  // Reservations
+  createReservation,
+  getMyReservations,
+  getAllReservations,
+  getReservationById,
+  cancelReservation,
+  updateReservation,
+};

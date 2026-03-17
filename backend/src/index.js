@@ -8,7 +8,7 @@ import reservationsRoutes from './routes/reservationsRoutes.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 // Middleware
 app.use(cors());
@@ -24,6 +24,6 @@ app.get('/', (req, res) => {
     res.send('API de SERVIRE funcionando correctamente.');
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server corriendo en el puerto ${PORT}`);
 });

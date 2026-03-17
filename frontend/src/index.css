@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1C9E91;
+  --color-secondary: #0E2140;
+  --color-text-primary: #0E2140;
+  --color-background: #FFFFFF;
+  --color-surface: #F5F5F5;
+  --color-danger: #D32F2F;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-border: #E0E0E0;
+
+  --radius-card: 12px;
+  --radius-button: 8px;
+
+  --font-sans: "Inter", "Roboto", "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary font-sans text-[14px] antialiased min-h-screen bg-gray-50;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-[24px] font-bold text-text-primary;
+  }
+}

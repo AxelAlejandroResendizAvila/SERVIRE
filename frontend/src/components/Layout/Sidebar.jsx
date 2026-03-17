@@ -1,0 +1,63 @@
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { CalendarRange, BookMarked, Settings, Home, X } from 'lucide-react';
+
+const Sidebar = ({ isOpen, toggleSidebar }) => {
+    const location = useLocation();
+
+    const navItems = [
+        { label: 'Inicio', icon: Home, path: '/' },
+        { label: 'Reservar', icon: CalendarRange, path: '/reserva' },
+        { label: 'Mis Reservas', icon: BookMarked, path: '/mis-reservas' },
+        { label: 'Panel Admin', icon: Settings, path: '/admin' },
+    ];
+
+    const sidebarClasses = `
+    fixed inset-y-0 left-0 z-50 w-64 bg-secondary text-white transform transition-transform duration-300 ease-in-out
+    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    md:translate-x-0 md:static md:inset-auto md:flex md:flex-col
+  `;
+
+    return (
+        <>
+            <aside className={sidebarClasses}>
+                <div className="flex items-center justify-between h-16 px-6 bg-secondary/90 border-b border-white/10">
+                    <span className="text-xl font-bold tracking-wider text-primary">SERVIRE</span>
+                    <button className="md:hidden text-white hover:text-primary" onClick={toggleSidebar}>
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                    {navItems.map((item) => {
+                        const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/reserva');
+                        return (
+                            <NavLink
+                                key={item.label}
+                                to={item.path === '/' ? '/reserva' : item.path}
+                                className={`flex items-center px-4 py-3 rounded-button transition-colors duration-200 group ${isActive
+                                        ? 'bg-primary text-white font-medium'
+                                        : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                onClick={() => { if (window.innerWidth < 768) toggleSidebar() }}
+                            >
+                                <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
+                                {item.label}
+                            </NavLink>
+                        );
+                    })}
+                </nav>
+            </aside>
+
+            {/* Mobile overlay */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+                    onClick={toggleSidebar}
+                />
+            )}
+        </>
+    );
+};
+
+export default Sidebar;

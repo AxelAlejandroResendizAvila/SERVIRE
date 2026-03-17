@@ -7,8 +7,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-SEVIRE DESKTOP/backend/node_modules
-SEVIRE DESKTOP/frontend/node_modules
+SERVIRE DESKTOP/backend/node_modules
+SERVIRE DESKTOP/frontend/node_modules
 .env
 dist
 dist-ssr

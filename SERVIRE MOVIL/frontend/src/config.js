@@ -1,20 +1,22 @@
-// Configuración de la API
-// Ajusta esta URL según tu entorno (desarrollo, staging, etc)
+import Constants from 'expo-constants';
+// Si aún no tienes una, déjala así por ahora.
+let API_BASE_URL = 'https://192.168.100.25/api'; //cambiar IP si es necesario
+// La variable __DEV__ es de React Native y es "true" automáticamente cuando usas Expo Go
+if (__DEV__) {
+    // hostUri nos da la IP y puerto de Expo (ej. "192.168.1.100:8081")
+    const hostUri = Constants.expoConfig?.hostUri;
 
-// IMPORTANTE: Descomenta la URL que corresponda a tu entorno:
+    if (hostUri) {
+        // Cortamos el texto donde está los dos puntos ":" para quedarnos solo con la IP
+        const pcIp = hostUri.split(':')[0];
 
-// Para desarrollo en navegador web (http://localhost o 127.0.0.1)
-// const API_BASE_URL = 'http://localhost:3000/api';
-
-// Para emulador Android (required for Android emulator to access localhost on host machine)
-const API_BASE_URL = 'http://10.0.2.2:3000/api';
-
-// Para dispositivo físico o emulador iOS (reemplaza 192.168.1.X con tu IP local)
-// const API_BASE_URL = 'http://192.168.1.100:3000/api';
+        // Armamos la URL apuntando al puerto 3000 de tu backend
+        API_BASE_URL = `http://${pcIp}:3000/api`;
+    }
+}
 
 export const config = {
-  apiKey: API_BASE_URL,
-  baseURL: API_BASE_URL,
+    baseURL: API_BASE_URL,
 };
 
 export default config;

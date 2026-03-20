@@ -43,11 +43,28 @@ export const removeToken = async () => {
 };
 
 /**
+ * Intenta convertir la respuesta del servidor a JSON sin romper la app.
+ * - Lee el body como texto.
+ * - Si viene vacío, regresa null.
+ * - Si es JSON válido, lo convierte y lo regresa.
+ * - Si NO es JSON, regresa el texto en { raw: texto } para poder verlo en logs.
+ */
+const safeParseJson = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+};
+
+/**
  * Realiza una solicitud HTTP con manejo de errores
  */
 const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const defaultHeaders = {
     'Content-Type': 'application/json',
   };
@@ -68,17 +85,20 @@ const apiCall = async (endpoint, options = {}) => {
 
   try {
     const response = await fetch(url, requestOptions);
-    
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP Error: ${response.status}`);
+      const errorData = await safeParseJson(response);
+      const msg =
+        (errorData && (errorData.error || errorData.message)) ||
+        `HTTP Error: ${response.status}`;
+      throw new Error(`${msg} (url: ${url})`);
     }
 
-    const data = await response.json();
+    const data = await safeParseJson(response);
     return data;
   } catch (error) {
     console.error(`Error en ${endpoint}:`, error);
-    throw error;
+    throw new Error(`${error.message || error} (url: ${url})`);
   }
 };
 

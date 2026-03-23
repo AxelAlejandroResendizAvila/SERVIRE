@@ -10,6 +10,7 @@ lerna-debug.log*
 # Node modules in all directories
 **/node_modules/
 
+migrate.js
 .env
 .env*.local
 dist

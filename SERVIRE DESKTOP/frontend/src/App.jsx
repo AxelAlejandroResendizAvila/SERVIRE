@@ -3,8 +3,9 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 import ReservationView from './pages/ReservationView';
-import MyReservations from './pages/MyReservations';
 import AdminPanel from './pages/AdminPanel';
+import CreateSpace from './pages/CreateSpace';
+import EditSpace from './pages/EditSpace';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -26,17 +27,24 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
-          <Route path="/mis-reservas" element={
-            <ProtectedRoute>
-              <Layout>
-                <MyReservations />
-              </Layout>
-            </ProtectedRoute>
-          } />
           <Route path="/admin" element={
             <ProtectedRoute>
               <Layout>
                 <AdminPanel />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/crear-espacio" element={
+            <ProtectedRoute>
+              <Layout>
+                <CreateSpace />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/editar-espacio/:id" element={
+            <ProtectedRoute>
+              <Layout>
+                <EditSpace />
               </Layout>
             </ProtectedRoute>
           } />

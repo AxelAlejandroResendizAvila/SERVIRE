@@ -35,7 +35,11 @@ router.post('/register', async (req, res) => {
         res.status(201).json({
             mensaje: 'Usuario registrado exitosamente',
             token,
-            usuario: newUser.rows[0]
+            usuario: {
+                id: newUser.rows[0].id_usuario,
+                nombre: newUser.rows[0].nombre,
+                email: newUser.rows[0].email
+            }
         });
     } catch (error) {
         console.error(error);
@@ -78,6 +82,44 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error del servidor al hacer login' });
+    }
+});
+
+router.post('/change-password', async (req, res) => {
+    const { id_usuario, passwordActual, passwordNueva } = req.body;
+
+    try {
+        // Get user
+        const userResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [id_usuario]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const usuario = userResult.rows[0];
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(passwordActual, usuario.contrasena_hash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const passwordNueva_hash = await bcrypt.hash(passwordNueva, salt);
+
+        // Update password
+        await pool.query('UPDATE usuarios SET contrasena_hash = $1 WHERE id_usuario = $2', [
+            passwordNueva_hash,
+            id_usuario
+        ]);
+
+        res.json({
+            mensaje: 'Contraseña actualizada exitosamente'
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al actualizar contraseña' });
     }
 });
 

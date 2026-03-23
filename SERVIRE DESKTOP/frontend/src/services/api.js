@@ -82,6 +82,21 @@ export const getAdminRequests = async () => {
     }
 };
 
+export const updateReservationStatus = async (id, estado) => {
+    try {
+        const res = await fetch(`${BASE_URL}/reservas/${id}/status`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ estado })
+        });
+        if (!res.ok) throw new Error('Fail');
+        return await res.json();
+    } catch (e) {
+        console.error(e);
+        throw e;
+    }
+};
+
 export const getMyReservations = async () => {
     try {
         const res = await fetch(`${BASE_URL}/reservas/mis-reservas`, {

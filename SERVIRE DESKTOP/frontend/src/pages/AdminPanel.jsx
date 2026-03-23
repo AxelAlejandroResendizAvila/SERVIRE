@@ -1,36 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Check, X, AlertTriangle } from 'lucide-react';
+import { Lock, Check, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import Badge from '../components/UI/Badge';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
-import { getAdminRequests } from '../services/api';
+import { getAdminRequests, updateReservationStatus } from '../services/api';
 
 const AdminPanel = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState(null);
 
     // Modal state
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [declineReason, setDeclineReason] = useState('');
 
+    const fetchRequests = async () => {
+        setLoading(true);
+        try {
+            const data = await getAdminRequests();
+            setRequests(data);
+        } catch (error) {
+            console.error('Failed to fetch admin requests:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchRequests = async () => {
-            setLoading(true);
-            try {
-                const data = await getAdminRequests();
-                setRequests(data);
-            } catch (error) {
-                console.error('Failed to fetch admin requests:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchRequests();
+        // Auto refresh every 5 seconds
+        const interval = setInterval(fetchRequests, 5000);
+        return () => clearInterval(interval);
     }, []);
 
-    const handleAuthorize = (id) => {
-        setRequests(requests.map(req => req.id === id ? { ...req, status: 'approved' } : req));
+    const handleAuthorize = async (id) => {
+        setUpdating(id);
+        try {
+            await updateReservationStatus(id, 'confirmada');
+            setRequests(requests.map(req => 
+                req.id === id ? { ...req, status: 'approved', estado: 'confirmada' } : req
+            ));
+        } catch (error) {
+            console.error('Error authorizing:', error);
+            alert('Error al autorizar la reserva');
+        } finally {
+            setUpdating(null);
+        }
     };
 
     const handleDeclineClick = (request) => {
@@ -39,27 +55,53 @@ const AdminPanel = () => {
         setIsDeclineModalOpen(true);
     };
 
-    const submitDecline = () => {
+    const submitDecline = async () => {
         if (selectedRequest) {
-            setRequests(requests.map(req =>
-                req.id === selectedRequest.id ? { ...req, status: 'declined', reason: declineReason } : req
-            ));
+            setUpdating(selectedRequest.id);
+            try {
+                await updateReservationStatus(selectedRequest.id, 'cancelada');
+                setRequests(requests.map(req =>
+                    req.id === selectedRequest.id ? { ...req, status: 'declined', estado: 'cancelada' } : req
+                ));
+            } catch (error) {
+                console.error('Error declining:', error);
+                alert('Error al rechazar la reserva');
+            } finally {
+                setUpdating(null);
+            }
         }
         setIsDeclineModalOpen(false);
         setSelectedRequest(null);
     };
 
-    const handleBlock = (id) => {
-        setRequests(requests.map(req => req.id === id ? { ...req, status: 'blocked' } : req));
+    const getStatusLabel = (status) => {
+        switch(status) {
+            case 'pending': return 'Pendiente';
+            case 'approved': return 'Confirmada';
+            case 'declined': return 'Cancelada';
+            default: return status;
+        }
     };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-secondary">Panel de Administración</h1>
-                <p className="text-gray-500 mt-1">
-                    Gestiona las solicitudes de reservación y aparta espacios.
-                </p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-2xl font-bold text-secondary">Panel de Administración</h1>
+                    <p className="text-gray-500 mt-1">
+                        Gestiona las solicitudes de reservación de espacios.
+                    </p>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchRequests}
+                    disabled={loading}
+                    className="flex items-center gap-2"
+                >
+                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                    Actualizar
+                </Button>
             </div>
 
             {loading ? (
@@ -72,10 +114,11 @@ const AdminPanel = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-surface text-gray-600 text-sm font-medium border-b border-border">
-                                    <th className="py-3 px-6 w-1/4">Solicitante</th>
-                                    <th className="py-3 px-6 w-1/4">Espacio</th>
+                                    <th className="py-3 px-6 w-1/5">Solicitante</th>
+                                    <th className="py-3 px-6 w-1/5">Espacio</th>
+                                    <th className="py-3 px-6 w-1/6">Fecha</th>
                                     <th className="py-3 px-6 w-1/6">Horario</th>
-                                    <th className="py-3 px-6 w-1/6">Estado</th>
+                                    <th className="py-3 px-6 w-1/8">Estado</th>
                                     <th className="py-3 px-6 text-right">Acciones</th>
                                 </tr>
                             </thead>
@@ -84,23 +127,19 @@ const AdminPanel = () => {
                                     <tr key={req.id} className="border-b border-border hover:bg-gray-50 transition-colors">
                                         <td className="py-4 px-6">
                                             <div className="flex items-center">
-                                                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-3">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-3 text-sm">
                                                     {req.requester.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <span className="font-medium text-secondary">{req.requester}</span>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6 text-gray-700">{req.space}</td>
+                                        <td className="py-4 px-6 text-gray-600 text-sm">{req.date}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">{req.time}</td>
                                         <td className="py-4 px-6">
                                             <Badge
-                                                status={req.status === 'blocked' ? 'danger' : req.status === 'declined' ? 'danger' : req.status}
-                                                label={
-                                                    req.status === 'pending' ? 'Pendiente' :
-                                                        req.status === 'approved' ? 'Aprobado' :
-                                                            req.status === 'blocked' ? 'Bloqueado' :
-                                                                'Rechazado'
-                                                }
+                                                status={req.status === 'declined' ? 'danger' : req.status}
+                                                label={getStatusLabel(req.status)}
                                             />
                                         </td>
                                         <td className="py-4 px-6 text-right">
@@ -112,6 +151,7 @@ const AdminPanel = () => {
                                                         className="!p-1.5"
                                                         title="Autorizar"
                                                         onClick={() => handleAuthorize(req.id)}
+                                                        disabled={updating !== null}
                                                     >
                                                         <Check size={16} />
                                                     </Button>
@@ -121,22 +161,16 @@ const AdminPanel = () => {
                                                         className="!p-1.5"
                                                         title="Declinar"
                                                         onClick={() => handleDeclineClick(req)}
+                                                        disabled={updating !== null}
                                                     >
                                                         <X size={16} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="warning"
-                                                        size="sm"
-                                                        className="!p-1.5"
-                                                        title="Apartar / Bloqueo Especial"
-                                                        onClick={() => handleBlock(req.id)}
-                                                    >
-                                                        <Lock size={16} />
                                                     </Button>
                                                 </div>
                                             )}
                                             {req.status !== 'pending' && (
-                                                <span className="text-sm text-gray-400 italic">Previamente gestionado</span>
+                                                <span className="text-xs text-gray-400 italic">
+                                                    {req.status === 'approved' ? 'Autorizado' : 'Rechazado'}
+                                                </span>
                                             )}
                                         </td>
                                     </tr>
@@ -144,8 +178,8 @@ const AdminPanel = () => {
 
                                 {requests.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className="py-8 text-center text-gray-500">
-                                            No hay solicitudes pendientes.
+                                        <td colSpan="6" className="py-8 text-center text-gray-500">
+                                            No hay solicitudes de reserva.
                                         </td>
                                     </tr>
                                 )}
@@ -159,11 +193,13 @@ const AdminPanel = () => {
             <Modal
                 isOpen={isDeclineModalOpen}
                 onClose={() => setIsDeclineModalOpen(false)}
-                title="Declinar Solicitud"
+                title="Rechazar Reserva"
                 actions={
                     <>
                         <Button variant="ghost" onClick={() => setIsDeclineModalOpen(false)}>Cancelar</Button>
-                        <Button variant="danger" onClick={submitDecline} disabled={!declineReason.trim()}>Confirmar Rechazo</Button>
+                        <Button variant="danger" onClick={submitDecline} disabled={updating !== null}>
+                            Confirmar Rechazo
+                        </Button>
                     </>
                 }
             >
@@ -171,13 +207,13 @@ const AdminPanel = () => {
                     <div className="flex items-start bg-red-50 p-3 rounded-md text-red-800 text-sm mb-4">
                         <AlertTriangle size={20} className="mr-2 shrink-0 text-red-600" />
                         <p>
-                            Estás a punto de declinar la solicitud de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>.
+                            Estás a punto de rechazar la reserva de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>.
                         </p>
                     </div>
 
                     <div>
                         <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-                            Motivo de rechazo (requerido)
+                            Motivo del rechazo
                         </label>
                         <textarea
                             id="reason"

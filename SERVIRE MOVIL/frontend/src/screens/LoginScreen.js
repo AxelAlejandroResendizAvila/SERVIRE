@@ -4,13 +4,14 @@ import { theme } from '../theme/theme';
 import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { Ionicons } from '@expo/vector-icons';
-import { authLogin } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { login } = useAuth();
 
     const handleLogin = async () => {
         // Validación
@@ -28,7 +29,7 @@ export default function LoginScreen({ navigation }) {
         setError('');
 
         try {
-            const response = await authLogin(email, password);
+            const response = await login(email, password);
             
             if (response.token && response.usuario) {
                 // Login exitoso

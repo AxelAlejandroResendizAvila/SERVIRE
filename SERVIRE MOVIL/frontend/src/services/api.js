@@ -220,6 +220,19 @@ export const getAllReservations = async () => {
 };
 
 /**
+ * Actualiza una reserva existente (solo si está pendiente)
+ * @param {number} reservationId
+ * @param {Object} updateData - { fecha_inicio, fecha_fin, precio_total }
+ * @returns {Promise}
+ */
+export const updateReservation = async (reservationId, updateData) => {
+  return apiCall(`/reservas/${reservationId}`, {
+    method: 'PUT',
+    body: JSON.stringify(updateData),
+  });
+};
+
+/**
  * Obtiene los detalles de una reserva específica
  * @param {number} reservationId
  * @returns {Promise} - Datos de la reserva
@@ -231,26 +244,13 @@ export const getReservationById = async (reservationId) => {
 };
 
 /**
- * Cancela una reserva
+ * Cancela una reserva (solo si está pendiente)
  * @param {number} reservationId
  * @returns {Promise}
  */
 export const cancelReservation = async (reservationId) => {
   return apiCall(`/reservas/${reservationId}`, {
     method: 'DELETE',
-  });
-};
-
-/**
- * Actualiza una reserva
- * @param {number} reservationId
- * @param {Object} updateData
- * @returns {Promise}
- */
-export const updateReservation = async (reservationId, updateData) => {
-  return apiCall(`/reservas/${reservationId}`, {
-    method: 'PUT',
-    body: JSON.stringify(updateData),
   });
 };
 

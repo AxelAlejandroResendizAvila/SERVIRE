@@ -12,9 +12,23 @@ import MisReservas from '../screens/MisReservas';
 import Cuenta from '../screens/Cuenta';
 import DetallesReserva from '../screens/DetallesReserva';
 import FormularioReservas from '../screens/FormularioReservas';
+import EditarReserva from '../screens/EditarReserva';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const FeaturesStack = createNativeStackNavigator();
+
+function FeaturesStackNavigator() {
+    return (
+        <FeaturesStack.Navigator screenOptions={{ headerShown: false }}>
+            <FeaturesStack.Screen name="MainTabs" component={MainTabs} />
+            <FeaturesStack.Screen name="FormularioReservas" component={FormularioReservas} />
+            <FeaturesStack.Screen name="EditarReserva" component={EditarReserva} />
+            <FeaturesStack.Screen name="DetallesReserva" component={DetallesReserva} />
+            <FeaturesStack.Screen name="MisReservas" component={MisReservas} />
+        </FeaturesStack.Navigator>
+    );
+}
 
 function MainTabs() {
     return (
@@ -51,9 +65,7 @@ export default function AppNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Registro" component={RegistroScreen} />
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="DetallesReserva" component={DetallesReserva} options={{ headerShown: true, title: 'Detalles del espacio' }} />
-            <Stack.Screen name="FormularioReservas" component={FormularioReservas} options={{ headerShown: true, title: 'Nueva Reserva' }} />
+            <Stack.Screen name="MainTabs" component={FeaturesStackNavigator} />
         </Stack.Navigator>
     );
 }

@@ -1,12 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
+import { useReservations } from '../hooks/useReservations';
 
 export default function InicioAPP({ navigation }) {
+    const { user } = useAuth();
+    const { reservations, loading } = useReservations();
+    const userName = user?.nombre || 'Usuario';
+
+    // Get the next upcoming reservation (first confirmed one)
+    const nextReservation = reservations.find(r => r.status === 'approved');
+
+    // Map status to display text
+    const getStatusDisplay = (status) => {
+        if (status === 'approved') return 'Confirmada';
+        if (status === 'waitlisted') return 'En lista de espera';
+        if (status === 'declined') return 'Cancelada';
+        return status;
+    };
+
+    // Map status to color
+    const getStatusColor = (status) => {
+        if (status === 'approved') return theme.colors.primary;
+        if (status === 'waitlisted') return theme.colors.warning || '#FFA500';
+        if (status === 'declined') return theme.colors.error || '#FF6B6B';
+        return theme.colors.text.secondary;
+    };
+
     return (
         <View style={styles.container}>
             <Header title="Inicio" rightIcon="notifications-outline" onRightPress={() => { }} />
@@ -14,7 +39,7 @@ export default function InicioAPP({ navigation }) {
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
                 <View style={styles.greetingContainer}>
-                    <Text style={styles.greetingTitle}>Hola, Juan Pérez</Text>
+                    <Text style={styles.greetingTitle}>Hola, {userName}</Text>
                     <Text style={styles.greetingSubtitle}>¿Qué espacio necesitas hoy?</Text>
                 </View>
 
@@ -30,68 +55,48 @@ export default function InicioAPP({ navigation }) {
                     </View>
                     <Button
                         title="Crear reserva"
-                        onPress={() => navigation.navigate('FeaturesStack', { screen: 'FormularioReservas' })}
+                        onPress={() => navigation.navigate('FormularioReservas')}
                     />
                 </Card>
 
-                <Text style={styles.sectionTitle}>Próxima reserva</Text>
-                <Card style={styles.upcomingCard}>
-                    <View style={styles.upcomingHeader}>
-                        <Text style={styles.spaceName}>Laboratorio de Física</Text>
-                        <View style={styles.statusPill}>
-                            <Text style={styles.statusText}>Confirmada</Text>
-                        </View>
+                {loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
                     </View>
-                    <View style={styles.detailsRow}>
-                        <Ionicons name="calendar-outline" size={16} color={theme.colors.text.secondary} />
-                        <Text style={styles.detailsText}>Lun, 3 de Feb</Text>
-                    </View>
-                    <View style={styles.detailsRow}>
-                        <Ionicons name="time-outline" size={16} color={theme.colors.text.secondary} />
-                        <Text style={styles.detailsText}>10:00 AM - 12:00 PM</Text>
-                    </View>
+                ) : nextReservation ? (
+                    <>
+                        <Text style={styles.sectionTitle}>Próxima reserva</Text>
+                        <Card style={styles.upcomingCard}>
+                            <View style={styles.upcomingHeader}>
+                                <Text style={styles.spaceName}>Espacio #{nextReservation.spaceId}</Text>
+                                <View style={[styles.statusPill, { backgroundColor: getStatusColor(nextReservation.status) + '20' }]}>
+                                    <Text style={[styles.statusText, { color: getStatusColor(nextReservation.status) }]}>
+                                        {getStatusDisplay(nextReservation.status)}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View style={styles.detailsRow}>
+                                <Ionicons name="calendar-outline" size={16} color={theme.colors.text.secondary} />
+                                <Text style={styles.detailsText}>{nextReservation.date}</Text>
+                            </View>
+                            <View style={styles.detailsRow}>
+                                <Ionicons name="time-outline" size={16} color={theme.colors.text.secondary} />
+                                <Text style={styles.detailsText}>{nextReservation.time}</Text>
+                            </View>
 
-                    <TouchableOpacity
-                        style={styles.detailsLink}
-                        onPress={() => navigation.navigate('FeaturesStack', { screen: 'DetallesReserva' })}
-                    >
-                        <Text style={styles.detailsLinkText}>Ver detalles</Text>
-                        <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
-                    </TouchableOpacity>
-                </Card>
-
-                <Text style={styles.sectionTitle}>Accesos rápidos</Text>
-                <View style={styles.quickActionsContainer}>
-                    <QuickActionItem
-                        icon="calendar"
-                        title="Mis reservas"
-                        onPress={() => navigation.navigate('MisReservas')}
-                    />
-                    <QuickActionItem
-                        icon="search"
-                        title="Explorar"
-                        onPress={() => navigation.navigate('ExplorarEspacios')}
-                    />
-                    <QuickActionItem
-                        icon="person"
-                        title="Cuenta"
-                        onPress={() => navigation.navigate('Cuenta')}
-                    />
-                </View>
+                            <TouchableOpacity
+                                style={styles.detailsLink}
+                                onPress={() => navigation.navigate('MisReservas')}
+                            >
+                                <Text style={styles.detailsLinkText}>Ver todas mis reservas</Text>
+                                <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        </Card>
+                    </>
+                ) : null}
 
             </ScrollView>
         </View>
-    );
-}
-
-function QuickActionItem({ icon, title, onPress }) {
-    return (
-        <TouchableOpacity style={styles.quickActionItem} onPress={onPress}>
-            <View style={styles.quickActionIcon}>
-                <Ionicons name={icon} size={24} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.quickActionText}>{title}</Text>
-        </TouchableOpacity>
     );
 }
 
@@ -144,6 +149,11 @@ const styles = StyleSheet.create({
         ...theme.typography.subheader,
         marginTop: theme.spacing.md,
         marginBottom: theme.spacing.md,
+    },
+    loadingContainer: {
+        paddingVertical: theme.spacing.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     upcomingCard: {
         borderLeftWidth: 4,

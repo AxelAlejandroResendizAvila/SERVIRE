@@ -3,13 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
+import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
-import { getMyReservations } from '../services/api';
+import { getMyReservations, cancelReservation } from '../services/api';
 
 export default function MisReservas({ navigation, route }) {
     const [activeTab, setActiveTab] = useState('pending');
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [canceling, setCanceling] = useState(null);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -36,10 +38,48 @@ export default function MisReservas({ navigation, route }) {
         }
     };
 
+    const handleCancel = async (id, status) => {
+        // Solo permitir cancelar si está pendiente
+        if (status !== 'pending') {
+            Alert.alert('Error', 'Solo puedes cancelar reservas en estado pendiente');
+            return;
+        }
+
+        Alert.alert(
+            'Cancelar reserva',
+            '¿Estás seguro de que quieres cancelar esta reserva?',
+            [
+                {
+                    text: 'No',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Sí, cancelar',
+                    onPress: async () => {
+                        setCanceling(id);
+                        try {
+                            await cancelReservation(id);
+                            Alert.alert('Éxito', 'Reserva cancelada correctamente');
+                            fetchReservations();
+                        } catch (error) {
+                            console.error('Error canceling:', error);
+                            Alert.alert('Error', error.message || 'Error al cancelar la reserva');
+                        } finally {
+                            setCanceling(null);
+                        }
+                    },
+                    style: 'destructive',
+                }
+            ]
+        );
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'approved':
                 return theme.colors.status.success;
+            case 'pending':
+                return theme.colors.status.warning;
             case 'waitlisted':
                 return theme.colors.status.warning;
             case 'declined':
@@ -53,6 +93,8 @@ export default function MisReservas({ navigation, route }) {
         switch (status) {
             case 'approved':
                 return 'Confirmada';
+            case 'pending':
+                return 'Pendiente';
             case 'waitlisted':
                 return 'En fila';
             case 'declined':
@@ -62,8 +104,8 @@ export default function MisReservas({ navigation, route }) {
         }
     };
 
-    const pendingReservations = reservations.filter(r => r.status === 'waitlisted' || r.status === 'approved');
-    const pastReservations = reservations.filter(r => r.status !== 'waitlisted' && r.status !== 'approved');
+    const pendingReservations = reservations.filter(r => r.status === 'pending' || r.status === 'waitlisted' || r.status === 'approved');
+    const pastReservations = reservations.filter(r => r.status === 'declined');
 
     const renderReservationsList = (list) => (
         <>
@@ -71,14 +113,8 @@ export default function MisReservas({ navigation, route }) {
                 <Text style={styles.emptyText}>No hay reservas</Text>
             ) : (
                 list.map((reservation, index) => (
-                    <TouchableOpacity
-                        key={`${reservation.id}-${index}`}
-                        onPress={() => navigation.navigate('FeaturesStack', {
-                            screen: 'DetallesReserva',
-                            params: { reservation }
-                        })}
-                    >
-                        <Card style={styles.reservationCard}>
+                    <Card key={`${reservation.id}-${index}`} style={styles.reservationCard}>
+                        <View style={styles.cardContent}>
                             <View style={styles.timeContainer}>
                                 <Text style={styles.timeText}>{reservation.time.split(' - ')[0]}</Text>
                                 <View style={styles.timeLine} />
@@ -97,14 +133,35 @@ export default function MisReservas({ navigation, route }) {
                                         {getStatusLabel(reservation.status)}
                                     </Text>
                                 </View>
-                                {reservation.waitlistPosition && (
-                                    <Text style={styles.waitlistText}>
-                                        Posición: {reservation.waitlistPosition}
-                                    </Text>
-                                )}
                             </View>
-                        </Card>
-                    </TouchableOpacity>
+                        </View>
+
+                        {/* Botones de acción - solo si está pendiente */}
+                        {reservation.status === 'pending' && (
+                            <View style={styles.actionsContainer}>
+                                <TouchableOpacity
+                                    style={styles.editButton}
+                                    onPress={() => navigation.navigate('FeaturesStack', {
+                                        screen: 'EditarReserva',
+                                        params: { id: reservation.id }
+                                    })}
+                                >
+                                    <Ionicons name="create-outline" size={18} color={theme.colors.primary} />
+                                    <Text style={styles.editButtonText}>Editar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => handleCancel(reservation.id, reservation.status)}
+                                    disabled={canceling === reservation.id}
+                                >
+                                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                                    <Text style={styles.cancelButtonText}>
+                                        {canceling === reservation.id ? 'Cancelando...' : 'Cancelar'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </Card>
                 ))
             )}
         </>
@@ -220,21 +277,24 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     reservationCard: {
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+    },
+    cardContent: {
         flexDirection: 'row',
-        padding: 0,
         marginBottom: theme.spacing.md,
     },
     timeContainer: {
         width: 80,
         backgroundColor: theme.colors.surface,
-        borderTopLeftRadius: theme.borderRadius.lg,
-        borderBottomLeftRadius: theme.borderRadius.lg,
+        borderRadius: theme.borderRadius.md,
         padding: theme.spacing.md,
         alignItems: 'center',
         justifyContent: 'center',
+        marginRight: theme.spacing.md,
     },
     timeText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         color: theme.colors.text.primary,
     },
@@ -246,7 +306,6 @@ const styles = StyleSheet.create({
     },
     detailsContainer: {
         flex: 1,
-        padding: theme.spacing.md,
     },
     dateText: {
         ...theme.typography.body,
@@ -259,15 +318,47 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
         borderRadius: theme.borderRadius.full,
-        marginBottom: theme.spacing.sm,
     },
     statusText: {
         fontSize: theme.typography.caption.fontSize,
         fontWeight: 'bold',
     },
-    waitlistText: {
-        ...theme.typography.caption,
-        color: theme.colors.text.secondary,
+    actionsContainer: {
+        flexDirection: 'row',
+        gap: theme.spacing.md,
+        paddingTop: theme.spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+    },
+    editButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.primary + '10',
+        gap: theme.spacing.xs,
+    },
+    editButtonText: {
+        color: theme.colors.primary,
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    cancelButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.error + '10',
+        gap: theme.spacing.xs,
+    },
+    cancelButtonText: {
+        color: theme.colors.error,
+        fontWeight: '600',
+        fontSize: 12,
     },
     emptyText: {
         ...theme.typography.body,

@@ -4,7 +4,7 @@ import { theme } from '../theme/theme';
 import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { Ionicons } from '@expo/vector-icons';
-import { authRegister } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function RegistroScreen({ navigation }) {
     const [nombre, setNombre] = useState('');
@@ -15,6 +15,7 @@ export default function RegistroScreen({ navigation }) {
     const [telefono, setTelefono] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const { register } = useAuth();
 
     const handleRegister = async () => {
         // Validación
@@ -42,13 +43,7 @@ export default function RegistroScreen({ navigation }) {
         setError('');
 
         try {
-            const response = await authRegister({
-                nombre,
-                apellidos,
-                email,
-                contrasena: password,
-                telefono: telefono || '',
-            });
+            const response = await register(nombre + ' ' + apellidos, email, password);
 
             if (response.token && response.usuario) {
                 Alert.alert('Éxito', 'Te has registrado correctamente. ¡Bienvenido!');

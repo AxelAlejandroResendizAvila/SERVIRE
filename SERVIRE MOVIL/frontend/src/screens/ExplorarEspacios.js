@@ -111,10 +111,7 @@ export default function ExplorarEspacios({ navigation }) {
                         {filteredSpaces.map(space => (
                             <TouchableOpacity
                                 key={space.id}
-                                onPress={() => navigation.navigate('FeaturesStack', { 
-                                    screen: 'FormularioReservas',
-                                    params: { space }
-                                })}
+                                onPress={() => navigation.navigate('FormularioReservas', { space })}
                             >
                                 <Card style={styles.spaceCard}>
                                     <View style={styles.spaceIconContainer}>

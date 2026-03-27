@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
 import { getSpaces } from '../services/api';
+import { config } from '../config';
 
 const FILTERS = ['Todos', 'Laboratorios', 'Aulas', 'Salas de reuniones', 'General'];
 
@@ -114,13 +115,20 @@ export default function ExplorarEspacios({ navigation }) {
                                 onPress={() => navigation.navigate('FormularioReservas', { space })}
                             >
                                 <Card style={styles.spaceCard}>
-                                    <View style={styles.spaceIconContainer}>
-                                        <Ionicons 
-                                            name={getTypeIcon(space.type)} 
-                                            size={24} 
-                                            color={theme.colors.primary} 
+                                    {space.image ? (
+                                        <Image
+                                            source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                            style={styles.spaceImage}
                                         />
-                                    </View>
+                                    ) : (
+                                        <View style={styles.spaceIconContainer}>
+                                            <Ionicons 
+                                                name={getTypeIcon(space.type)} 
+                                                size={32} 
+                                                color={theme.colors.primary} 
+                                            />
+                                        </View>
+                                    )}
                                     <View style={styles.spaceInfo}>
                                         <Text style={styles.spaceName}>{space.name}</Text>
                                         <Text style={styles.spaceType}>{space.type}</Text>
@@ -234,18 +242,28 @@ const styles = StyleSheet.create({
     spaceCard: {
         flexDirection: 'row',
         alignItems: 'center',
+        overflow: 'hidden',
+    },
+    spaceImage: {
+        width: 100,
+        height: 100,
+        borderTopLeftRadius: theme.borderRadius.md,
+        borderBottomLeftRadius: theme.borderRadius.md,
     },
     spaceIconContainer: {
-        width: 48,
-        height: 48,
+        width: 100,
+        height: 100,
         borderRadius: theme.borderRadius.md,
         backgroundColor: theme.colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: theme.spacing.md,
+        borderTopLeftRadius: theme.borderRadius.md,
+        borderBottomLeftRadius: theme.borderRadius.md,
     },
     spaceInfo: {
         flex: 1,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
     },
     spaceName: {
         ...theme.typography.subheader,

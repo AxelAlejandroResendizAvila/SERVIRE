@@ -13,6 +13,7 @@ const AdminPanel = () => {
 
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [motivo, setMotivo] = useState('');
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -42,14 +43,19 @@ const AdminPanel = () => {
 
     const handleDeclineClick = (request) => {
         setSelectedRequest(request);
+        setMotivo('');
         setIsDeclineModalOpen(true);
     };
 
     const submitDecline = async () => {
         if (!selectedRequest) return;
+        if (!motivo.trim()) {
+            alert('El motivo de cancelación es requerido');
+            return;
+        }
         setActionLoading(selectedRequest.id);
         try {
-            await declineReservation(selectedRequest.id);
+            await declineReservation(selectedRequest.id, motivo);
             fetchRequests();
         } catch (error) {
             alert(error.message);
@@ -57,6 +63,7 @@ const AdminPanel = () => {
             setActionLoading(null);
             setIsDeclineModalOpen(false);
             setSelectedRequest(null);
+            setMotivo('');
         }
     };
 
@@ -226,19 +233,31 @@ const AdminPanel = () => {
                         <Button
                             variant="danger"
                             onClick={submitDecline}
-                            disabled={actionLoading === selectedRequest?.id}
+                            disabled={actionLoading === selectedRequest?.id || !motivo.trim()}
                         >
                             {actionLoading === selectedRequest?.id ? 'Procesando...' : 'Confirmar Rechazo'}
                         </Button>
                     </>
                 }
             >
-                <div className="flex items-start bg-red-50 p-3 rounded-md text-red-800 text-sm">
-                    <AlertTriangle size={20} className="mr-2 shrink-0 text-red-600" />
-                    <p>
-                        ¿Rechazar la solicitud de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>?
-                        El usuario será notificado del rechazo.
-                    </p>
+                <div className="flex flex-col gap-4 text-sm">
+                    <div className="flex items-start bg-red-50 p-3 rounded-md text-red-800">
+                        <AlertTriangle size={20} className="mr-2 shrink-0 text-red-600" />
+                        <p>
+                            ¿Rechazar la solicitud de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>?
+                            El usuario será notificado del rechazo.
+                        </p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1.5">
+                        <label className="font-medium text-secondary">Motivo de cancelación (requerido)</label>
+                        <textarea 
+                            className="w-full border border-border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-700 resize-none min-h-[80px]"
+                            placeholder="Describe el motivo del rechazo..."
+                            value={motivo}
+                            onChange={(e) => setMotivo(e.target.value)}
+                        />
+                    </div>
                 </div>
             </Modal>
         </div>

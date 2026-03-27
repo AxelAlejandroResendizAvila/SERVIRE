@@ -207,6 +207,7 @@ router.put('/:id/aprobar', authMiddleware, async (req, res) => {
 // ─── 5. Admin: Decline/Cancel a reservation ────────────────────────────
 router.put('/:id/rechazar', authMiddleware, async (req, res) => {
     const { id } = req.params;
+    const { motivo_estado } = req.body || {};
 
     try {
         const reservaResult = await pool.query('SELECT * FROM reservas WHERE id_reserva = $1', [id]);
@@ -215,7 +216,10 @@ router.put('/:id/rechazar', authMiddleware, async (req, res) => {
         }
 
         const reserva = reservaResult.rows[0];
-        await pool.query("UPDATE reservas SET estado = 'cancelada' WHERE id_reserva = $1", [id]);
+        await pool.query(
+            "UPDATE reservas SET estado = 'cancelada', motivo_estado = $1 WHERE id_reserva = $2", 
+            [motivo_estado || 'Cancelada por el administrador', id]
+        );
 
         // If it was a confirmed reservation, free the space
         if (reserva.estado === 'confirmada') {

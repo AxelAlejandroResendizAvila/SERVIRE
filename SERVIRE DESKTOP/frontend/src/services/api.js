@@ -148,10 +148,11 @@ export const approveReservation = async (reservationId) => {
     return data;
 };
 
-export const declineReservation = async (reservationId) => {
+export const declineReservation = async (reservationId, motivo) => {
     const res = await fetch(`${BASE_URL}/reservas/${reservationId}/rechazar`, {
         method: 'PUT',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ motivo_estado: motivo })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al rechazar');

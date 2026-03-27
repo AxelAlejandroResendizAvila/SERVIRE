@@ -73,6 +73,17 @@ export const getCategories = async () => {
     }
 };
 
+export const getEdificios = async () => {
+    try {
+        const res = await fetch(`${BASE_URL}/espacios/edificios`);
+        if (!res.ok) throw new Error('Network response was not ok');
+        return await res.json();
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+};
+
 export const createSpace = async (formData) => {
     // formData should be a FormData object (for file uploads)
     const res = await fetch(`${BASE_URL}/espacios`, {

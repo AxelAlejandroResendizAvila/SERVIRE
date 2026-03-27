@@ -12,7 +12,9 @@ const FILTERS = ['Todos', 'Laboratorios', 'Aulas', 'Salas de reuniones', 'Genera
 export default function ExplorarEspacios({ navigation }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('Todos');
+    const [activeBuilding, setActiveBuilding] = useState('Todos');
     const [spaces, setSpaces] = useState([]);
+    const [edificios, setEdificios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -26,6 +28,12 @@ export default function ExplorarEspacios({ navigation }) {
             setError('');
             const data = await getSpaces();
             setSpaces(data || []);
+            
+            try {
+                const res = await fetch(`${config.baseURL}/espacios/edificios`);
+                const edifs = await res.json();
+                setEdificios(edifs || []);
+            } catch(e) {}
         } catch (err) {
             console.error('Error fetching spaces:', err);
             setError('Error al cargar los espacios');
@@ -38,7 +46,8 @@ export default function ExplorarEspacios({ navigation }) {
     const filteredSpaces = spaces.filter(space => {
         const matchesFilter = activeFilter === 'Todos' || space.type === activeFilter;
         const matchesSearch = space.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesFilter && matchesSearch;
+        const matchesBuilding = activeBuilding === 'Todos' || space.buildingId === activeBuilding;
+        return matchesFilter && matchesSearch && matchesBuilding;
     });
 
     const getTypeIcon = (type) => {
@@ -91,6 +100,40 @@ export default function ExplorarEspacios({ navigation }) {
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
+                
+                {edificios.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filtersScroll, { marginTop: 10 }]}>
+                        <TouchableOpacity
+                            style={[
+                                styles.filterChip,
+                                activeBuilding === 'Todos' && styles.activeFilterChip
+                            ]}
+                            onPress={() => setActiveBuilding('Todos')}
+                        >
+                            <Text style={[styles.filterText, activeBuilding === 'Todos' && styles.activeFilterText]}>
+                                Todos los edificios
+                            </Text>
+                        </TouchableOpacity>
+                        
+                        {edificios.map(ed => (
+                            <TouchableOpacity
+                                key={ed.id}
+                                style={[
+                                    styles.filterChip,
+                                    activeBuilding === ed.id && styles.activeFilterChip
+                                ]}
+                                onPress={() => setActiveBuilding(ed.id)}
+                            >
+                                <Text style={[
+                                    styles.filterText,
+                                    activeBuilding === ed.id && styles.activeFilterText
+                                ]}>
+                                    {ed.name}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                )}
             </View>
 
             <ScrollView contentContainerStyle={styles.listContainer}>
@@ -131,7 +174,7 @@ export default function ExplorarEspacios({ navigation }) {
                                     )}
                                     <View style={styles.spaceInfo}>
                                         <Text style={styles.spaceName}>{space.name}</Text>
-                                        <Text style={styles.spaceType}>{space.type}</Text>
+                                        <Text style={styles.spaceType}>{space.type} • {space.location}</Text>
                                         <Text style={styles.spaceCapacity}>
                                             Capacidad: {space.capacity} personas
                                         </Text>

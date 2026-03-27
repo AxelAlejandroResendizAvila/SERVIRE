@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, AlertTriangle, RefreshCw, Clock, Users as UsersIcon } from 'lucide-react';
+import { Check, X, AlertTriangle, RefreshCw, Clock, Users as UsersIcon, Search } from 'lucide-react';
 import Badge from '../components/UI/Badge';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import { getAdminRequests, approveReservation, declineReservation } from '../services/api';
 
 const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
-    const [status, setStatus] = useState(''); 
+    const [status, setStatus] = useState('');
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
@@ -22,14 +22,14 @@ const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
                 const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const s = Math.floor((distance % (1000 * 60)) / 1000);
-                
+
                 let timeStr = '';
                 if (d > 0) {
                     timeStr = `${d}d ${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
                 } else {
                     timeStr = `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
                 }
-                
+
                 setTimeLeft(timeStr);
                 return;
             }
@@ -59,8 +59,8 @@ const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
 
     if (status === 'pending') {
         return (
-            <span className="inline-block mt-1 text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded shadow-sm border border-yellow-200">
-                ⏱️ Empieza en: {timeLeft}
+            <span className="inline-block mt-1 text-xs font-bold text-gray-700 bg-blue-100 px-2 py-0.5 rounded shadow-sm border border-gray-200">
+                ⏱ Empieza en: {timeLeft}
             </span>
         );
     }
@@ -77,6 +77,7 @@ const AdminPanel = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [activeTab, setActiveTab] = useState('pending');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -100,7 +101,7 @@ const AdminPanel = () => {
         setActionLoading(id);
         try {
             await approveReservation(id);
-            fetchRequests(); 
+            fetchRequests();
         } catch (error) {
             alert(error.message);
         } finally {
@@ -135,10 +136,15 @@ const AdminPanel = () => {
     };
 
     const filteredRequests = requests.filter(req => {
-        if (activeTab === 'pending') return req.status === 'pending';
-        if (activeTab === 'approved') return req.status === 'approved';
-        if (activeTab === 'history') return req.status === 'declined' || req.status === 'completed';
-        return true;
+        let matchesTab = true;
+        if (activeTab === 'pending') matchesTab = req.status === 'pending';
+        else if (activeTab === 'approved') matchesTab = req.status === 'approved';
+        else if (activeTab === 'history') matchesTab = req.status === 'declined' || req.status === 'completed';
+
+        const str = `${req.requester} ${req.requesterEmail} ${req.space} ${req.date} ${req.time} ${req.status} ${req.motivo_rechazo || ''}`.toLowerCase();
+        const matchesSearch = str.includes(searchQuery.toLowerCase());
+
+        return matchesTab && matchesSearch;
     });
 
     const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -148,6 +154,7 @@ const AdminPanel = () => {
         { key: 'pending', label: 'Pendientes', count: pendingCount },
         { key: 'approved', label: 'Activas', count: approvedCount },
         { key: 'history', label: 'Historial', count: null },
+        { key: 'all', label: 'Todos', count: requests.length },
     ];
 
     return (
@@ -159,9 +166,22 @@ const AdminPanel = () => {
                         Aprueba o rechaza las solicitudes de los usuarios.
                     </p>
                 </div>
-                <Button variant="outline" onClick={fetchRequests} disabled={loading} className="shrink-0">
-                    <RefreshCw size={16} className={`mr-1 ${loading ? 'animate-spin' : ''}`} /> Actualizar
-                </Button>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar solicitud..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                        />
+                    </div>
+                    <Button variant="outline" onClick={fetchRequests} disabled={loading} className="shrink-0 w-full sm:w-auto">
+                        <RefreshCw size={16} className={`mr-1 ${loading ? 'animate-spin' : ''}`} /> Actualizar
+                    </Button>
+                </div>
             </div>
 
             <div className="flex gap-1 bg-surface p-1 rounded-card border border-border w-fit">
@@ -201,7 +221,7 @@ const AdminPanel = () => {
                                     <th className="py-3 px-6">Fecha</th>
                                     <th className="py-3 px-6">Horario</th>
                                     <th className="py-3 px-6">Estado</th>
-                                    {activeTab === 'pending' && <th className="py-3 px-6 text-right">Acciones</th>}
+                                    <th className="py-3 px-6 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -229,7 +249,7 @@ const AdminPanel = () => {
                                         <td className="py-4 px-6 text-gray-600 text-sm">{req.date}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">
                                             <div>{req.time}</div>
-                                            {activeTab === 'approved' && req.startDateRaw && req.endDateRaw && (
+                                            {req.status === 'approved' && req.startDateRaw && req.endDateRaw && (
                                                 <CountdownTimer startDateRaw={req.startDateRaw} endDateRaw={req.endDateRaw} />
                                             )}
                                         </td>
@@ -252,9 +272,9 @@ const AdminPanel = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        {activeTab === 'pending' && (
-                                            <td className="py-4 px-6 text-right">
-                                                <div className="flex justify-end gap-2">
+                                        <td className="py-4 px-6 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {req.status === 'pending' && (
                                                     <Button
                                                         variant="success"
                                                         size="sm"
@@ -269,19 +289,21 @@ const AdminPanel = () => {
                                                             <Check size={16} />
                                                         )}
                                                     </Button>
+                                                )}
+                                                {(req.status === 'pending' || req.status === 'approved') && (
                                                     <Button
                                                         variant="danger"
                                                         size="sm"
                                                         className="!p-1.5"
-                                                        title="Rechazar"
+                                                        title={req.status === 'approved' ? "Cancelar Reserva" : "Rechazar Solicitud"}
                                                         onClick={() => handleDeclineClick(req)}
                                                         disabled={actionLoading === req.id}
                                                     >
                                                         <X size={16} />
                                                     </Button>
-                                                </div>
-                                            </td>
-                                        )}
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
 
@@ -306,7 +328,7 @@ const AdminPanel = () => {
             <Modal
                 isOpen={isDeclineModalOpen}
                 onClose={() => setIsDeclineModalOpen(false)}
-                title="Rechazar Solicitud"
+                title={selectedRequest?.status === 'approved' ? "Cancelar Reserva Activa" : "Rechazar Solicitud"}
                 actions={
                     <>
                         <Button variant="ghost" onClick={() => setIsDeclineModalOpen(false)}>Cancelar</Button>
@@ -315,7 +337,7 @@ const AdminPanel = () => {
                             onClick={submitDecline}
                             disabled={actionLoading === selectedRequest?.id || !motivo.trim()}
                         >
-                            {actionLoading === selectedRequest?.id ? 'Procesando...' : 'Confirmar Rechazo'}
+                            {actionLoading === selectedRequest?.id ? 'Procesando...' : (selectedRequest?.status === 'approved' ? 'Confirmar Cancelación' : 'Confirmar Rechazo')}
                         </Button>
                     </>
                 }
@@ -324,14 +346,16 @@ const AdminPanel = () => {
                     <div className="flex items-start bg-red-50 p-3 rounded-md text-red-800">
                         <AlertTriangle size={20} className="mr-2 shrink-0 text-red-600" />
                         <p>
-                            ¿Rechazar la solicitud de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>?
-                            El usuario será notificado del rechazo.
+                            {selectedRequest?.status === 'approved'
+                                ? <>¿Estás seguro de cancelar la reserva activa de <strong>{selectedRequest?.requester}</strong> en <strong>{selectedRequest?.space}</strong>?</>
+                                : <>¿Rechazar la solicitud de <strong>{selectedRequest?.requester}</strong> para <strong>{selectedRequest?.space}</strong>?</>}
+                            <br />El usuario será notificado de este cambio de estado.
                         </p>
                     </div>
-                    
+
                     <div className="flex flex-col gap-1.5">
-                        <label className="font-medium text-secondary">Motivo de cancelación (requerido)</label>
-                        <textarea 
+                        <label className="font-medium text-secondary">Motivo de la decisión (requerido)</label>
+                        <textarea
                             className="w-full border border-border rounded-md p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-700 resize-none min-h-[80px]"
                             placeholder="Describe el motivo del rechazo..."
                             value={motivo}

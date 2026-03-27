@@ -1,38 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Clock, AlertCircle, Plus, Pencil, Trash2, Unlock, Eye, MapPin, ChevronLeft, ChevronRight, X, ZoomIn, FileText } from 'lucide-react';
+import { Users, Clock, AlertCircle, Plus, Pencil, Trash2, Unlock, Eye, MapPin, ChevronLeft, ChevronRight, X, ZoomIn, FileText, Search, Filter } from 'lucide-react';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Modal from '../components/UI/Modal';
-import { getSpaces, deleteSpace, freeSpace, getSpaceDetail } from '../services/api';
-
-const AREA_TYPES = ['Todos', 'Tics', 'Biblioteca', 'Laboratorio', 'Auditorio', 'Salas', 'General'];
+import { getSpaces, deleteSpace, freeSpace, getSpaceDetail, getCategories, getEdificios } from '../services/api';
 
 const ReservationView = () => {
     const navigate = useNavigate();
     const [spaces, setSpaces] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState('Todos');
     const [actionLoading, setActionLoading] = useState(null);
+
+    const [categories, setCategories] = useState([]);
+    const [edificios, setEdificios] = useState([]);
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterCategory, setFilterCategory] = useState('Todas');
+    const [filterLocation, setFilterLocation] = useState('Todos');
+    const [filterMinCapacity, setFilterMinCapacity] = useState('');
+    const [showFiltersToggle, setShowFiltersToggle] = useState(false);
 
     const [deleteModal, setDeleteModal] = useState({ open: false, space: null });
     const [detailModal, setDetailModal] = useState({ open: false, space: null, loading: false });
     const [lightbox, setLightbox] = useState({ open: false, images: [], currentIndex: 0 });
 
-    const fetchSpaces = async () => {
+    const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const data = await getSpaces();
+            const [cats, edifs, data] = await Promise.all([
+                getCategories(),
+                getEdificios(),
+                getSpaces()
+            ]);
+            setCategories(cats);
+            setEdificios(edifs);
             setSpaces(data);
         } catch (error) {
-            console.error('Failed to fetch spaces:', error);
+            console.error('Failed to fetch data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchSpaces(); }, []);
+    const fetchSpaces = async () => {
+        try {
+            const data = await getSpaces();
+            setSpaces(data);
+        } catch (error) {
+            console.error('Failed to fetch spaces:', error);
+        }
+    };
+
+    useEffect(() => { fetchInitialData(); }, []);
 
     const handleDelete = async () => {
         if (!deleteModal.space) return;
@@ -94,9 +115,16 @@ const ReservationView = () => {
         }));
     };
 
-    const filteredSpaces = activeFilter === 'Todos'
-        ? spaces
-        : spaces.filter(space => space.type === activeFilter);
+    const filteredSpaces = spaces.filter(space => {
+        const str = `${space.name} ${space.location} ${space.type} ${space.capacity}`.toLowerCase();
+        const matchesSearch = str.includes(searchQuery.toLowerCase());
+
+        const matchesCategory = filterCategory === 'Todas' || space.categoryId?.toString() === filterCategory.toString();
+        const matchesBuilding = filterLocation === 'Todos' || space.buildingId?.toString() === filterLocation.toString();
+        const matchesCapacity = filterMinCapacity === '' || space.capacity >= parseInt(filterMinCapacity);
+
+        return matchesSearch && matchesCategory && matchesBuilding && matchesCapacity;
+    });
 
     return (
         <div className="space-y-6">
@@ -106,28 +134,70 @@ const ReservationView = () => {
                     <p className="text-gray-500 mt-1">Administra todos los espacios de la universidad.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Filters */}
-                    <div className="flex flex-wrap gap-2">
-                        {AREA_TYPES.map(type => (
-                            <button
-                                key={type}
-                                onClick={() => setActiveFilter(type)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${activeFilter === type
-                                    ? 'bg-secondary text-white shadow-sm'
-                                    : 'bg-white text-gray-600 border border-border hover:bg-gray-50'
-                                    }`}
-                            >
-                                {type}
-                            </button>
-                        ))}
+                <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                    <div className="relative w-full md:w-64">
+                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar en tiempo real..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
+                        />
                     </div>
-
-                    <Button variant="primary" onClick={() => navigate('/crear-espacio')} className="shrink-0">
-                        <Plus size={18} className="mr-1" /> Nuevo
-                    </Button>
+                    
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <Button 
+                            variant={showFiltersToggle ? "primary" : "outline"} 
+                            onClick={() => setShowFiltersToggle(!showFiltersToggle)} 
+                            className="flex-1 md:flex-none"
+                        >
+                            <Filter size={16} className="mr-1.5" /> Filtros
+                        </Button>
+                        <Button variant="primary" onClick={() => navigate('/crear-espacio')} className="flex-1 md:flex-none shrink-0">
+                            <Plus size={18} className="mr-1" /> Nuevo Espacio
+                        </Button>
+                    </div>
                 </div>
             </div>
+
+            {showFiltersToggle && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface p-5 rounded-2xl border border-border shadow-sm">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Edificio</label>
+                        <select 
+                            value={filterLocation} 
+                            onChange={(e) => setFilterLocation(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                            <option value="Todos">Todos los edificios</option>
+                            {edificios.map(ed => <option key={ed.id} value={ed.id}>{ed.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoría</label>
+                        <select 
+                            value={filterCategory} 
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                            <option value="Todas">Todas las categorías</option>
+                            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Capacidad Min.</label>
+                        <input 
+                            type="number" 
+                            min="1"
+                            placeholder="Ej. 10"
+                            value={filterMinCapacity}
+                            onChange={(e) => setFilterMinCapacity(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                    </div>
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex justify-center items-center h-64">

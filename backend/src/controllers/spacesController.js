@@ -10,6 +10,16 @@ export const getCategories = async (req, res) => {
     }
 };
 
+export const getEdificios = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id_edificio as id, nombre as name FROM edificios ORDER BY nombre');
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al obtener edificios' });
+    }
+};
+
 export const getAllSpaces = async (req, res) => {
     try {
         const query = `
@@ -20,7 +30,8 @@ export const getAllSpaces = async (req, res) => {
         e.disponible as is_available,
         e.imagen_url as image,
         e.descripcion as description,
-        e.ubicacion as location,
+        ed.nombre as location,
+        e.id_edificio as "buildingId",
         COALESCE(c.nombre, 'General') as type,
         c.id_categoria as "categoryId",
         (
@@ -30,6 +41,7 @@ export const getAllSpaces = async (req, res) => {
         ) as "waitlistCount"
       FROM espacios e
       LEFT JOIN categorias c ON e.id_categoria = c.id_categoria
+      LEFT JOIN edificios ed ON e.id_edificio = ed.id_edificio
       ORDER BY e.nombre
     `;
 
@@ -67,11 +79,13 @@ export const getSpaceById = async (req, res) => {
         e.disponible as is_available,
         e.imagen_url as image,
         e.descripcion as description,
-        e.ubicacion as location,
+        ed.nombre as location,
+        e.id_edificio as "buildingId",
         COALESCE(c.nombre, 'General') as type,
         c.id_categoria as "categoryId"
       FROM espacios e
       LEFT JOIN categorias c ON e.id_categoria = c.id_categoria
+      LEFT JOIN edificios ed ON e.id_edificio = ed.id_edificio
       WHERE e.id_espacio = $1
     `;
         const spaceResult = await pool.query(spaceQuery, [id]);
@@ -125,6 +139,7 @@ export const getSpaceById = async (req, res) => {
             image: space.image,
             description: space.description,
             location: space.location,
+            buildingId: space.buildingId,
             state: space.is_available ? 'disponible' : 'ocupado',
             gallery: gallery,
             waitlist: waitlistResult.rows
@@ -136,7 +151,7 @@ export const getSpaceById = async (req, res) => {
 };
 
 export const createSpace = async (req, res) => {
-    const { nombre, capacidad, id_categoria, disponible, descripcion, ubicacion } = req.body;
+    const { nombre, capacidad, id_categoria, disponible, descripcion, id_edificio } = req.body;
 
     if (!nombre || !capacidad) {
         return res.status(400).json({ error: 'Nombre y capacidad son obligatorios' });
@@ -146,7 +161,7 @@ export const createSpace = async (req, res) => {
 
     try {
         const query = `
-      INSERT INTO espacios (nombre, capacidad, id_categoria, disponible, descripcion, ubicacion, imagen_url)
+      INSERT INTO espacios (nombre, capacidad, id_categoria, disponible, descripcion, id_edificio, imagen_url)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
@@ -156,7 +171,7 @@ export const createSpace = async (req, res) => {
             id_categoria || null,
             disponible === 'true' || disponible === true,
             descripcion || '',
-            ubicacion || '',
+            id_edificio ? parseInt(id_edificio) : null,
             mainImage
         ];
 
@@ -190,7 +205,7 @@ export const createSpace = async (req, res) => {
 
 export const updateSpace = async (req, res) => {
     const { id } = req.params;
-    const { nombre, capacidad, id_categoria, disponible, descripcion, ubicacion } = req.body;
+    const { nombre, capacidad, id_categoria, disponible, descripcion, id_edificio } = req.body;
 
     if (!nombre || !capacidad) {
         return res.status(400).json({ error: 'Nombre y capacidad son obligatorios' });
@@ -204,24 +219,24 @@ export const updateSpace = async (req, res) => {
             query = `
                 UPDATE espacios 
                 SET nombre = $1, capacidad = $2, id_categoria = $3, disponible = $4, 
-                    descripcion = $5, ubicacion = $6, imagen_url = $7
+                    descripcion = $5, id_edificio = $6, imagen_url = $7
                 WHERE id_espacio = $8
                 RETURNING *
             `;
             values = [nombre, parseInt(capacidad), id_categoria || null,
                 disponible === 'true' || disponible === true,
-                descripcion || '', ubicacion || '', imagePath, id];
+                descripcion || '', id_edificio ? parseInt(id_edificio) : null, imagePath, id];
         } else {
             query = `
                 UPDATE espacios 
                 SET nombre = $1, capacidad = $2, id_categoria = $3, disponible = $4,
-                    descripcion = $5, ubicacion = $6
+                    descripcion = $5, id_edificio = $6
                 WHERE id_espacio = $7
                 RETURNING *
             `;
             values = [nombre, parseInt(capacidad), id_categoria || null,
                 disponible === 'true' || disponible === true,
-                descripcion || '', ubicacion || '', id];
+                descripcion || '', id_edificio ? parseInt(id_edificio) : null, id];
         }
 
         const result = await pool.query(query, values);

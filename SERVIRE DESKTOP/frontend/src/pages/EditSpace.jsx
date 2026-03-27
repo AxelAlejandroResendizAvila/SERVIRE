@@ -3,12 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, Tag, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, ImagePlus, X, Trash2 } from 'lucide-react';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
-import { updateSpace, getCategories, getSpaceDetail, deleteGalleryImage } from '../services/api';
+import { updateSpace, getCategories, getEdificios, getSpaceDetail, deleteGalleryImage } from '../services/api';
 
 const EditSpace = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [categories, setCategories] = useState([]);
+    const [edificios, setEdificios] = useState([]);
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [success, setSuccess] = useState(false);
@@ -20,7 +21,7 @@ const EditSpace = () => {
         id_categoria: '',
         disponible: true,
         descripcion: '',
-        ubicacion: ''
+        id_edificio: ''
     });
 
     const [mainImage, setMainImage] = useState(null);
@@ -37,18 +38,20 @@ const EditSpace = () => {
         const loadData = async () => {
             setPageLoading(true);
             try {
-                const [cats, space] = await Promise.all([
+                const [cats, edifs, space] = await Promise.all([
                     getCategories(),
+                    getEdificios(),
                     getSpaceDetail(id)
                 ]);
                 setCategories(cats);
+                setEdificios(edifs);
                 setFormData({
                     nombre: space.name || '',
                     capacidad: space.capacity?.toString() || '',
                     id_categoria: space.categoryId?.toString() || '',
                     disponible: space.state === 'disponible',
                     descripcion: space.description || '',
-                    ubicacion: space.location || ''
+                    id_edificio: space.buildingId?.toString() || ''
                 });
                 if (space.image) {
                     setMainImagePreview(`http://localhost:3000${space.image}`);
@@ -122,7 +125,7 @@ const EditSpace = () => {
             if (formData.id_categoria) fd.append('id_categoria', formData.id_categoria);
             fd.append('disponible', formData.disponible);
             fd.append('descripcion', formData.descripcion);
-            fd.append('ubicacion', formData.ubicacion);
+            if (formData.id_edificio) fd.append('id_edificio', formData.id_edificio);
 
             if (mainImage) fd.append('imagen', mainImage);
             newGalleryImages.forEach(file => fd.append('galeria', file));
@@ -255,11 +258,14 @@ const EditSpace = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="ubicacion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
-                            <MapPin size={16} className="text-primary" /> Ubicación
+                        <label htmlFor="id_edificio" className="flex items-center gap-2 text-sm font-semibold text-secondary">
+                            <MapPin size={16} className="text-primary" /> Edificio / Ubicación
                         </label>
-                        <input type="text" id="ubicacion" name="ubicacion" value={formData.ubicacion} onChange={handleChange} placeholder="Edificio B, Piso 2"
-                            className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                        <select id="id_edificio" name="id_edificio" value={formData.id_edificio} onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer">
+                            <option value="">Selecciona un edificio...</option>
+                            {edificios.map(ed => <option key={ed.id} value={ed.id}>{ed.name}</option>)}
+                        </select>
                     </div>
 
                     <div className="space-y-2">

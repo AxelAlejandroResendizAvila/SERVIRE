@@ -6,6 +6,7 @@ import * as spacesController from '../controllers/spacesController.js';
 const router = express.Router();
 
 router.get('/categorias', spacesController.getCategories);
+router.get('/edificios', spacesController.getEdificios);
 router.get('/', spacesController.getAllSpaces);
 router.get('/:id', spacesController.getSpaceById);
 

@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, Tag, FileText, CheckCircle, AlertCircle, ArrowLeft, Plus, Sparkles, ImagePlus, X } from 'lucide-react';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
-import { createSpace, getCategories } from '../services/api';
+import { createSpace, getCategories, getEdificios } from '../services/api';
 
 const CreateSpace = () => {
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
+    const [edificios, setEdificios] = useState([]);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
@@ -18,7 +19,7 @@ const CreateSpace = () => {
         id_categoria: '',
         disponible: true,
         descripcion: '',
-        ubicacion: ''
+        id_edificio: ''
     });
 
     const [mainImage, setMainImage] = useState(null);
@@ -31,11 +32,15 @@ const CreateSpace = () => {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            const data = await getCategories();
-            setCategories(data);
+        const fetchInitialData = async () => {
+            const [cats, edifs] = await Promise.all([
+                getCategories(),
+                getEdificios()
+            ]);
+            setCategories(cats);
+            setEdificios(edifs);
         };
-        fetchCategories();
+        fetchInitialData();
     }, []);
 
     const validate = () => {
@@ -92,7 +97,7 @@ const CreateSpace = () => {
             if (formData.id_categoria) fd.append('id_categoria', formData.id_categoria);
             fd.append('disponible', formData.disponible);
             fd.append('descripcion', formData.descripcion);
-            fd.append('ubicacion', formData.ubicacion);
+            if (formData.id_edificio) fd.append('id_edificio', formData.id_edificio);
 
             if (mainImage) fd.append('imagen', mainImage);
             galleryImages.forEach(file => fd.append('galeria', file));
@@ -271,19 +276,21 @@ const CreateSpace = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="ubicacion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
-                            <MapPin size={16} className="text-primary" />
-                            Ubicación
+                        <label htmlFor="id_edificio" className="flex items-center gap-2 text-sm font-semibold text-secondary">
+                            <MapPin size={16} className="text-primary" /> Edificio / Ubicación
                         </label>
-                        <input
-                            type="text"
-                            id="ubicacion"
-                            name="ubicacion"
-                            value={formData.ubicacion}
+                        <select
+                            id="id_edificio"
+                            name="id_edificio"
+                            value={formData.id_edificio}
                             onChange={handleChange}
-                            placeholder="Ej. Edificio B, Piso 2"
-                            className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                        />
+                            className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="">Selecciona un edificio...</option>
+                            {edificios.map(ed => (
+                                <option key={ed.id} value={ed.id}>{ed.name}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="space-y-2">

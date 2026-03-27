@@ -23,7 +23,6 @@ const EditSpace = () => {
         ubicacion: ''
     });
 
-    // Image state
     const [mainImage, setMainImage] = useState(null);
     const [mainImagePreview, setMainImagePreview] = useState(null);
     const [existingGallery, setExistingGallery] = useState([]);
@@ -175,7 +174,6 @@ const EditSpace = () => {
                 <div className="h-1.5 bg-gradient-to-r from-secondary via-primary/70 to-primary"></div>
 
                 <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-                    {/* Main Image */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <ImagePlus size={16} className="text-primary" /> Imagen Principal
@@ -198,7 +196,6 @@ const EditSpace = () => {
                         <input ref={mainImageRef} type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
                     </div>
 
-                    {/* Gallery */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <ImagePlus size={16} className="text-primary" /> Galería
@@ -227,7 +224,6 @@ const EditSpace = () => {
                         <input ref={galleryRef} type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                     </div>
 
-                    {/* Name */}
                     <div className="space-y-2">
                         <label htmlFor="nombre" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <Tag size={16} className="text-primary" /> Nombre <span className="text-danger">*</span>
@@ -237,7 +233,6 @@ const EditSpace = () => {
                         {errors.nombre && <p className="text-danger text-xs flex items-center gap-1"><AlertCircle size={12} /> {errors.nombre}</p>}
                     </div>
 
-                    {/* Capacity & Category */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label htmlFor="capacidad" className="flex items-center gap-2 text-sm font-semibold text-secondary">
@@ -259,7 +254,6 @@ const EditSpace = () => {
                         </div>
                     </div>
 
-                    {/* Location */}
                     <div className="space-y-2">
                         <label htmlFor="ubicacion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <MapPin size={16} className="text-primary" /> Ubicación
@@ -268,7 +262,6 @@ const EditSpace = () => {
                             className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <label htmlFor="descripcion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <FileText size={16} className="text-primary" /> Descripción
@@ -277,7 +270,6 @@ const EditSpace = () => {
                             className="w-full px-4 py-3 rounded-button border border-border bg-white text-secondary placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none" />
                     </div>
 
-                    {/* Availability */}
                     <div className="flex items-center justify-between p-4 bg-surface rounded-card border border-border">
                         <div>
                             <p className="font-semibold text-secondary text-sm">Disponibilidad</p>

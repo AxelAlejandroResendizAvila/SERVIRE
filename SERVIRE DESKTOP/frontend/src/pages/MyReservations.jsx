@@ -49,7 +49,6 @@ const MyReservations = () => {
                     getSpaces()
                 ]);
 
-                // Map spaces by ID for easy lookup
                 const spacesMap = spaces.reduce((acc, space) => {
                     acc[space.id] = space;
                     return acc;
@@ -95,7 +94,6 @@ const MyReservations = () => {
                         return (
                             <Card key={res.id} className="p-0 overflow-hidden">
                                 <div className="flex flex-col md:flex-row border-l-4 border-l-primary">
-                                    {/* Left content block */}
                                     <div className="flex-1 p-5">
                                         <div className="flex justify-between items-start mb-2">
                                             <h3 className="text-lg font-bold text-secondary">
@@ -122,7 +120,6 @@ const MyReservations = () => {
                                             </div>
                                         </div>
 
-                                        {/* Render Waitlist component conditionally */}
                                         {res.status === 'waitlisted' && (
                                             <QueuePosition
                                                 position={res.waitlistPosition}
@@ -131,7 +128,6 @@ const MyReservations = () => {
                                         )}
                                     </div>
 
-                                    {/* Right actions block (Desktop) / Bottom actions (Mobile) */}
                                     <div className="bg-gray-50 flex items-center justify-center p-4 border-t md:border-t-0 md:border-l border-gray-100 md:w-32 hover:bg-gray-100 cursor-pointer transition-colors text-primary font-medium group">
                                         <span className="md:hidden mr-2">Ver detalles</span>
                                         <span className="hidden md:inline">Detalles</span>

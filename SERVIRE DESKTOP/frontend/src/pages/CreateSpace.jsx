@@ -21,7 +21,6 @@ const CreateSpace = () => {
         ubicacion: ''
     });
 
-    // Image state
     const [mainImage, setMainImage] = useState(null);
     const [mainImagePreview, setMainImagePreview] = useState(null);
     const [galleryImages, setGalleryImages] = useState([]);
@@ -87,7 +86,6 @@ const CreateSpace = () => {
         setError('');
 
         try {
-            // Build FormData for multipart upload
             const fd = new FormData();
             fd.append('nombre', formData.nombre);
             fd.append('capacidad', formData.capacidad);
@@ -113,7 +111,6 @@ const CreateSpace = () => {
 
     return (
         <div className="space-y-6 max-w-3xl mx-auto">
-            {/* Header */}
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => navigate('/reserva')}
@@ -153,7 +150,6 @@ const CreateSpace = () => {
                 <div className="h-1.5 bg-gradient-to-r from-primary via-primary/70 to-secondary"></div>
 
                 <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-                    {/* Main Image Upload */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <ImagePlus size={16} className="text-primary" />
@@ -185,7 +181,6 @@ const CreateSpace = () => {
                         <input ref={mainImageRef} type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
                     </div>
 
-                    {/* Gallery Images Upload */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <ImagePlus size={16} className="text-primary" />
@@ -215,7 +210,6 @@ const CreateSpace = () => {
                         <input ref={galleryRef} type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                     </div>
 
-                    {/* Name */}
                     <div className="space-y-2">
                         <label htmlFor="nombre" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <Tag size={16} className="text-primary" />
@@ -235,7 +229,6 @@ const CreateSpace = () => {
                         )}
                     </div>
 
-                    {/* Capacity & Category */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label htmlFor="capacidad" className="flex items-center gap-2 text-sm font-semibold text-secondary">
@@ -277,7 +270,6 @@ const CreateSpace = () => {
                         </div>
                     </div>
 
-                    {/* Location */}
                     <div className="space-y-2">
                         <label htmlFor="ubicacion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <MapPin size={16} className="text-primary" />
@@ -294,7 +286,6 @@ const CreateSpace = () => {
                         />
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <label htmlFor="descripcion" className="flex items-center gap-2 text-sm font-semibold text-secondary">
                             <FileText size={16} className="text-primary" />
@@ -311,7 +302,6 @@ const CreateSpace = () => {
                         ></textarea>
                     </div>
 
-                    {/* Availability Toggle */}
                     <div className="flex items-center justify-between p-4 bg-surface rounded-card border border-border">
                         <div>
                             <p className="font-semibold text-secondary text-sm">Disponibilidad</p>

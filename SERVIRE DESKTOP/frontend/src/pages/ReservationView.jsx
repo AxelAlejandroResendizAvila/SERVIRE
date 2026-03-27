@@ -16,11 +16,8 @@ const ReservationView = () => {
     const [activeFilter, setActiveFilter] = useState('Todos');
     const [actionLoading, setActionLoading] = useState(null);
 
-    // Delete modal
     const [deleteModal, setDeleteModal] = useState({ open: false, space: null });
-    // Detail/Queue modal
     const [detailModal, setDetailModal] = useState({ open: false, space: null, loading: false });
-    // Lightbox for expanded image
     const [lightbox, setLightbox] = useState({ open: false, images: [], currentIndex: 0 });
 
     const fetchSpaces = async () => {
@@ -214,7 +211,7 @@ const ReservationView = () => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
+    
             <Modal
                 isOpen={deleteModal.open}
                 onClose={() => setDeleteModal({ open: false, space: null })}
@@ -241,7 +238,6 @@ const ReservationView = () => {
                 </div>
             </Modal>
 
-            {/* Space Detail / Queue Modal */}
             <Modal
                 isOpen={detailModal.open}
                 onClose={() => setDetailModal({ open: false, space: null, loading: false })}
@@ -269,7 +265,7 @@ const ReservationView = () => {
                             )}
                         </div>
 
-                        {/* Description Box */}
+              
                         {detailModal.space.description && (
                             <div className="bg-blue-50/50 p-3.5 rounded-lg border border-blue-100">
                                 <h4 className="text-[11px] font-bold text-primary uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
@@ -279,7 +275,6 @@ const ReservationView = () => {
                             </div>
                         )}
 
-                        {/* Gallery - Horizontal Scroll */}
                         {(() => {
                             const allImages = [];
                             if (detailModal.space.image) allImages.push(detailModal.space.image);
@@ -315,7 +310,7 @@ const ReservationView = () => {
                             return null;
                         })()}
 
-                        {/* Waitlist / Queue */}
+                
                         <div>
                             <h4 className="text-sm font-semibold text-secondary mb-2">
                                 Fila de Reservas ({detailModal.space.waitlist?.filter(w => w.status === 'pendiente').length || 0} pendientes)
@@ -350,7 +345,6 @@ const ReservationView = () => {
                             )}
                         </div>
 
-                        {/* Modal Actions */}
                         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-5 border-t border-border gap-4 sm:gap-0">
                             {detailModal.space.state === 'ocupado' ? (
                                 <Button
@@ -391,13 +385,11 @@ const ReservationView = () => {
                 )}
             </Modal>
 
-            {/* Lightbox (Fullscreen Image Viewer) */}
             {lightbox.open && lightbox.images.length > 0 && (
                 <div 
                     className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm transition-opacity"
                     onClick={() => setLightbox({ open: false, images: [], currentIndex: 0 })}
                 >
-                    {/* Close Button */}
                     <button 
                         className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors z-50"
                         onClick={(e) => { e.stopPropagation(); setLightbox({ open: false, images: [], currentIndex: 0 }); }}
@@ -405,12 +397,10 @@ const ReservationView = () => {
                         <X size={28} />
                     </button>
 
-                    {/* Image Counter */}
                     <div className="absolute top-6 left-6 px-3 py-1.5 rounded-full bg-black/50 border border-white/20 text-white text-sm font-medium tracking-wide z-50">
                         {lightbox.currentIndex + 1} / {lightbox.images.length}
                     </div>
 
-                    {/* Main Image */}
                     <img
                         src={`http://localhost:3000${lightbox.images[lightbox.currentIndex]}`}
                         alt="Espacio expandido"
@@ -418,7 +408,6 @@ const ReservationView = () => {
                         onClick={(e) => e.stopPropagation()} // Prevent close when clicking image
                     />
 
-                    {/* Navigation Buttons (Only if multiple images) */}
                     {lightbox.images.length > 1 && (
                         <>
                             <button 

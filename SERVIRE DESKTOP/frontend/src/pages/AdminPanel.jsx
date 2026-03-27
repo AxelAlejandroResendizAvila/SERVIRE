@@ -11,7 +11,6 @@ const AdminPanel = () => {
     const [actionLoading, setActionLoading] = useState(null);
     const [activeTab, setActiveTab] = useState('pending');
 
-    // Decline modal
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
@@ -33,7 +32,7 @@ const AdminPanel = () => {
         setActionLoading(id);
         try {
             await approveReservation(id);
-            fetchRequests(); // Refresh data
+            fetchRequests(); 
         } catch (error) {
             alert(error.message);
         } finally {
@@ -61,7 +60,6 @@ const AdminPanel = () => {
         }
     };
 
-    // Filter by tab
     const filteredRequests = requests.filter(req => {
         if (activeTab === 'pending') return req.status === 'pending';
         if (activeTab === 'approved') return req.status === 'approved';
@@ -92,7 +90,6 @@ const AdminPanel = () => {
                 </Button>
             </div>
 
-            {/* Tabs */}
             <div className="flex gap-1 bg-surface p-1 rounded-card border border-border w-fit">
                 {tabs.map(tab => (
                     <button
@@ -219,7 +216,6 @@ const AdminPanel = () => {
                 </div>
             )}
 
-            {/* Decline Confirmation Modal */}
             <Modal
                 isOpen={isDeclineModalOpen}
                 onClose={() => setIsDeclineModalOpen(false)}

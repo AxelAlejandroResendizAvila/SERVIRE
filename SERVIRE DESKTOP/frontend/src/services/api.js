@@ -1,8 +1,6 @@
-// Frontend API Calls — SERVIRE Admin Desktop
 
 const BASE_URL = 'http://localhost:3000/api';
 
-// Helper to get auth headers (JSON)
 const getAuthHeaders = () => {
     const token = localStorage.getItem('servire_token');
     return {
@@ -11,13 +9,11 @@ const getAuthHeaders = () => {
     };
 };
 
-// Helper for auth with FormData (no Content-Type — browser sets it with boundary)
 const getAuthHeadersMultipart = () => {
     const token = localStorage.getItem('servire_token');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
-// ─── Auth ──────────────────────────────────────────────────────────────
 export const login = async (email, contrasena) => {
     const res = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
@@ -40,7 +36,6 @@ export const register = async (userData) => {
     return data;
 };
 
-// ─── Spaces ────────────────────────────────────────────────────────────
 export const getSpaces = async () => {
     try {
         const res = await fetch(`${BASE_URL}/espacios`);
@@ -112,7 +107,6 @@ export const deleteGalleryImage = async (imageId) => {
     return data;
 };
 
-// ─── Reservations ──────────────────────────────────────────────────────
 export const reserveSpace = async (spaceId) => {
     try {
         const res = await fetch(`${BASE_URL}/reservas`, {

@@ -22,7 +22,6 @@ const Register = () => {
     const { register } = useAuth();
     const navigate = useNavigate();
 
-    // Validaciones
     const validations = {
         nombre: {
             regex: /^[a-záéíóúñA-ZÁÉÍÓÚÑ\s]{2,}$/,
@@ -84,7 +83,6 @@ const Register = () => {
         e.preventDefault();
         setServerError('');
 
-        // Validar todos los campos requeridos
         const requiredFields = ['nombre', 'apellidos', 'email', 'contrasena'];
         let isValid = true;
 
@@ -94,7 +92,6 @@ const Register = () => {
             }
         });
 
-        // Validar teléfono si está presente
         if (formData.telefono && !validateField('telefono', formData.telefono)) {
             isValid = false;
         }

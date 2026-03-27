@@ -171,6 +171,14 @@ const AdminPanel = () => {
                                                                 'Rechazada'
                                                 }
                                             />
+                                            {req.status === 'declined' && req.motivo_rechazo && (
+                                                <div className="mt-2 text-xs text-red-600 bg-red-50 p-1.5 rounded flex items-start max-w-[200px]">
+                                                    <AlertTriangle size={12} className="mr-1 mt-0.5 shrink-0" />
+                                                    <span className="break-words line-clamp-2" title={req.motivo_rechazo}>
+                                                        {req.motivo_rechazo}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </td>
                                         {activeTab === 'pending' && (
                                             <td className="py-4 px-6 text-right">

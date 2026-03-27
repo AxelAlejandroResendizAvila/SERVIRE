@@ -57,6 +57,7 @@ router.get('/mis-reservas', authMiddleware, async (req, res) => {
         TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         r.estado,
+        r.motivo_estado,
         (
           SELECT COUNT(*) FROM reservas r2 
           WHERE r2.id_espacio = r.id_espacio 
@@ -89,6 +90,7 @@ router.get('/mis-reservas', authMiddleware, async (req, res) => {
                 date: row.date,
                 time: row.time,
                 status,
+                motivo_rechazo: row.motivo_estado, 
                 waitlistPosition: status === 'waitlisted' ? parseInt(row.queuePosition) : null,
                 waitlistTotal: status === 'waitlisted' ? parseInt(row.queueTotal) : null
             };

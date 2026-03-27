@@ -133,6 +133,14 @@ export default function MisReservas({ navigation, route }) {
                                         {getStatusLabel(reservation.status)}
                                     </Text>
                                 </View>
+                                {reservation.status === 'declined' && reservation.motivo_rechazo && (
+                                    <View style={styles.reasonContainer}>
+                                        <Ionicons name="information-circle-outline" size={16} color={theme.colors.error} />
+                                        <Text style={styles.reasonText} numberOfLines={2}>
+                                            Motivo: {reservation.motivo_rechazo}
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
 
@@ -322,6 +330,20 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: theme.typography.caption.fontSize,
         fontWeight: 'bold',
+    },
+    reasonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: theme.spacing.sm,
+        backgroundColor: theme.colors.error + '10', //
+        padding: theme.spacing.sm,
+        borderRadius: theme.borderRadius.sm,
+    },
+    reasonText: {
+        ...theme.typography.caption,
+        color: theme.colors.error,
+        marginLeft: theme.spacing.xs,
+        flex: 1,
     },
     actionsContainer: {
         flexDirection: 'row',

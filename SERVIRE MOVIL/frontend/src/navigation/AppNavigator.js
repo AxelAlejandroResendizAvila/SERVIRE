@@ -21,7 +21,7 @@ const FeaturesStack = createNativeStackNavigator();
 function FeaturesStackNavigator() {
     return (
         <FeaturesStack.Navigator screenOptions={{ headerShown: false }}>
-            <FeaturesStack.Screen name="MainTabs" component={MainTabs} />
+            <FeaturesStack.Screen name="HomeTabs" component={MainTabs} />
             <FeaturesStack.Screen name="FormularioReservas" component={FormularioReservas} />
             <FeaturesStack.Screen name="EditarReserva" component={EditarReserva} />
             <FeaturesStack.Screen name="DetallesReserva" component={DetallesReserva} />

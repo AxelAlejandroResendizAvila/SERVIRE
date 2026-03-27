@@ -73,7 +73,7 @@ export default function Cuenta({ navigation }) {
                         await logout();
                         navigation.reset({
                             index: 0,
-                            routes: [{ name: 'AuthStack' }],
+                            routes: [{ name: 'Login' }],
                         });
                     },
                     style: 'destructive',

@@ -21,9 +21,9 @@ export default function LoginScreen({ navigation }) {
             return;
         }
 
-        const emailRegex = /^[^\s@]+@upq\.(edu\.)?mx$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.toLowerCase())) {
-            setError('Por favor ingresa un correo institucional válido (@upq.mx o @upq.edu.mx)');
+            setError('Por favor ingresa un correo electrónico válido');
             return;
         }
 

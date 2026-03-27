@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { CalendarRange, BookMarked, Settings, Home, X } from 'lucide-react';
+import { LayoutGrid, ClipboardList, PlusSquare, X } from 'lucide-react';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const location = useLocation();
 
     const navItems = [
-        { label: 'Inicio', icon: Home, path: '/' },
-        { label: 'Reservar', icon: CalendarRange, path: '/reserva' },
-        { label: 'Mis Reservas', icon: BookMarked, path: '/mis-reservas' },
-        { label: 'Panel Admin', icon: Settings, path: '/admin' },
+        { label: 'Espacios', icon: LayoutGrid, path: '/reserva' },
+        { label: 'Crear Espacio', icon: PlusSquare, path: '/crear-espacio' },
+        { label: 'Solicitudes', icon: ClipboardList, path: '/admin' },
     ];
 
     const sidebarClasses = `
@@ -30,11 +29,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
                 <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                     {navItems.map((item) => {
-                        const isActive = location.pathname === item.path || (item.path === '/' && location.pathname === '/reserva');
+                        const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                         return (
                             <NavLink
                                 key={item.label}
-                                to={item.path === '/' ? '/reserva' : item.path}
+                                to={item.path}
                                 className={`flex items-center px-4 py-3 rounded-button transition-colors duration-200 group ${isActive
                                         ? 'bg-primary text-white font-medium'
                                         : 'text-gray-300 hover:bg-white/10 hover:text-white'

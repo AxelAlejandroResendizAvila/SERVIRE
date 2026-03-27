@@ -4,39 +4,38 @@ import authMiddleware from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// 1. Create a reservation
+// ─── 1. Create a reservation (always starts as 'pendiente') ───────────
 router.post('/', authMiddleware, async (req, res) => {
-    const { id_espacio, fecha_inicio, fecha_fin, precio_total } = req.body;
-    const id_usuario = req.usuario; // from auth middleware
+    const { id_espacio, fecha_inicio, fecha_fin } = req.body;
+    const id_usuario = req.usuario;
 
     try {
-        // Check if space exists and is available
-        const spaceResult = await pool.query('SELECT disponible FROM espacios WHERE id_espacio = $1', [id_espacio]);
+        const spaceResult = await pool.query('SELECT disponible, nombre FROM espacios WHERE id_espacio = $1', [id_espacio]);
         if (spaceResult.rows.length === 0) {
             return res.status(404).json({ error: 'Espacio no encontrado' });
         }
 
-        // Default dates if not provided by frontend yet (since current UI doesn't have date pickers)
         const start = fecha_inicio || new Date().toISOString();
-        const end = fecha_fin || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // +2 hours
-        const price = precio_total || 0;
+        const end = fecha_fin || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
-        // Check if available. If available -> status: confirmada. If occupied -> status: pendiente (waitlist)
-        const isAvailable = spaceResult.rows[0].disponible;
-        const isWaitlist = !isAvailable;
-
+        // ALL reservations start as 'pendiente' — admin approves manually
         const query = `
-      INSERT INTO reservas (id_usuario, id_espacio, fecha_inicio, fecha_fin, estado, precio_total)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO reservas (id_usuario, id_espacio, fecha_inicio, fecha_fin, estado)
+      VALUES ($1, $2, $3, $4, 'pendiente')
       RETURNING *
     `;
+        const newReservation = await pool.query(query, [id_usuario, id_espacio, start, end]);
 
-        const values = [id_usuario, id_espacio, start, end, isWaitlist ? 'pendiente' : 'confirmada', price];
-        const newReservation = await pool.query(query, values);
+        // Count position in queue for this space
+        const positionQuery = `
+      SELECT COUNT(*) as pos FROM reservas 
+      WHERE id_espacio = $1 AND estado = 'pendiente' AND fecha_creacion <= $2
+    `;
+        const posResult = await pool.query(positionQuery, [id_espacio, newReservation.rows[0].fecha_creacion]);
 
         res.status(201).json({
             success: true,
-            message: isWaitlist ? 'Te has unido a la fila' : 'Reserva creada exitosamente',
+            message: `Solicitud enviada. Posición en fila: ${posResult.rows[0].pos}`,
             reserva: newReservation.rows[0]
         });
     } catch (error) {
@@ -45,7 +44,7 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 });
 
-// 2. Get reservations for logged in user (MyReservations view)
+// ─── 2. Get my reservations (user's view) ─────────────────────────────
 router.get('/mis-reservas', authMiddleware, async (req, res) => {
     const id_usuario = req.usuario;
 
@@ -54,31 +53,44 @@ router.get('/mis-reservas', authMiddleware, async (req, res) => {
       SELECT 
         r.id_reserva as id,
         r.id_espacio as "spaceId",
+        e.nombre as "spaceName",
         TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
-        r.estado
+        r.estado,
+        (
+          SELECT COUNT(*) FROM reservas r2 
+          WHERE r2.id_espacio = r.id_espacio 
+          AND r2.estado = 'pendiente' 
+          AND r2.fecha_creacion <= r.fecha_creacion
+        ) as "queuePosition",
+        (
+          SELECT COUNT(*) FROM reservas r3 
+          WHERE r3.id_espacio = r.id_espacio 
+          AND r3.estado = 'pendiente'
+        ) as "queueTotal"
       FROM reservas r
+      JOIN espacios e ON r.id_espacio = e.id_espacio
       WHERE r.id_usuario = $1
-      ORDER BY r.fecha_inicio DESC
+      ORDER BY r.fecha_creacion DESC
     `;
 
         const result = await pool.query(query, [id_usuario]);
 
-        // Map to frontend expectations
         const reservations = result.rows.map(row => {
-            let status = 'waitlisted'; // Map 'pendiente'
-            if (row.estado === 'confirmada' || row.estado === 'completada') status = 'approved';
-            if (row.estado === 'cancelada') status = 'declined'; // Reusing decline badge for canceled
+            let status = 'waitlisted';
+            if (row.estado === 'confirmada') status = 'approved';
+            if (row.estado === 'completada') status = 'completed';
+            if (row.estado === 'cancelada') status = 'declined';
 
             return {
                 id: row.id,
                 spaceId: row.spaceId,
+                spaceName: row.spaceName,
                 date: row.date,
                 time: row.time,
-                status: status,
-                // Waitlist mock visualization: position 1 of 1 (ideally query count of older pending reservations for same space here)
-                waitlistPosition: status === 'waitlisted' ? 1 : null,
-                waitlistTotal: status === 'waitlisted' ? 1 : null
+                status,
+                waitlistPosition: status === 'waitlisted' ? parseInt(row.queuePosition) : null,
+                waitlistTotal: status === 'waitlisted' ? parseInt(row.queueTotal) : null
             };
         });
 
@@ -89,23 +101,38 @@ router.get('/mis-reservas', authMiddleware, async (req, res) => {
     }
 });
 
-// 3. Admin: Get all requests
+// ─── 3. Admin: Get all requests ────────────────────────────────────────
 router.get('/admin', async (req, res) => {
     try {
         const query = `
       SELECT 
         r.id_reserva as id,
+        r.id_espacio as "spaceId",
+        r.id_usuario as "userId",
         CONCAT(u.nombre, ' ', u.apellidos) as requester,
+        u.email as "requesterEmail",
         e.nombre as space,
         TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
+        TO_CHAR(r.fecha_creacion, 'YYYY-MM-DD HH24:MI') as "createdAt",
         r.estado,
-        r.id_usuario,
-        r.id_espacio
+        (
+          SELECT COUNT(*) FROM reservas r2 
+          WHERE r2.id_espacio = r.id_espacio 
+          AND r2.estado = 'pendiente' 
+          AND r2.fecha_creacion <= r.fecha_creacion
+        ) as "queuePosition"
       FROM reservas r
       JOIN usuarios u ON r.id_usuario = u.id_usuario
       JOIN espacios e ON r.id_espacio = e.id_espacio
-      ORDER BY r.fecha_creacion DESC
+      ORDER BY 
+        CASE r.estado 
+          WHEN 'pendiente' THEN 1 
+          WHEN 'confirmada' THEN 2 
+          WHEN 'completada' THEN 3
+          ELSE 4 
+        END,
+        r.fecha_creacion ASC
     `;
 
         const result = await pool.query(query);
@@ -113,19 +140,21 @@ router.get('/admin', async (req, res) => {
         const requests = result.rows.map(row => {
             let status = 'pending';
             if (row.estado === 'confirmada') status = 'approved';
-            if (row.estado === 'pendiente') status = 'pending';
             if (row.estado === 'cancelada') status = 'declined';
+            if (row.estado === 'completada') status = 'completed';
 
             return {
                 id: row.id,
+                spaceId: row.spaceId,
+                userId: row.userId,
                 requester: row.requester,
+                requesterEmail: row.requesterEmail,
                 space: row.space,
                 date: row.date,
                 time: row.time,
-                status: status,
-                id_usuario: row.id_usuario,
-                id_espacio: row.id_espacio,
-                estado: row.estado
+                createdAt: row.createdAt,
+                status,
+                queuePosition: row.estado === 'pendiente' ? parseInt(row.queuePosition) : null
             };
         });
 
@@ -136,135 +165,110 @@ router.get('/admin', async (req, res) => {
     }
 });
 
-// 4. Update reservation (must be pending)
-router.put('/:id', async (req, res) => {
+// ─── 4. Admin: Approve a reservation ───────────────────────────────────
+router.put('/:id/aprobar', authMiddleware, async (req, res) => {
     const { id } = req.params;
-    const { fecha_inicio, fecha_fin, precio_total } = req.body;
 
     try {
-        // Check reservation exists and is pending
-        const reservation = await pool.query(
-            'SELECT * FROM reservas WHERE id_reserva = $1',
-            [id]
-        );
-
-        if (reservation.rows.length === 0) {
+        const reservaResult = await pool.query('SELECT * FROM reservas WHERE id_reserva = $1', [id]);
+        if (reservaResult.rows.length === 0) {
             return res.status(404).json({ error: 'Reserva no encontrada' });
         }
 
-        const currentReserva = reservation.rows[0];
-        
-        // Only allow editing if status is 'pendiente'
-        if (currentReserva.estado !== 'pendiente') {
-            return res.status(400).json({ error: 'Solo se pueden editar reservas en estado pendiente' });
+        const reserva = reservaResult.rows[0];
+
+        if (reserva.estado !== 'pendiente') {
+            return res.status(400).json({ error: 'Solo se pueden aprobar reservas pendientes' });
         }
 
-        // Update reservation
-        const result = await pool.query(
-            `UPDATE reservas 
-             SET fecha_inicio = $1, fecha_fin = $2, precio_total = $3
-             WHERE id_reserva = $4
-             RETURNING *`,
-            [fecha_inicio || currentReserva.fecha_inicio, fecha_fin || currentReserva.fecha_fin, precio_total || currentReserva.precio_total, id]
+        // Check if there's already a confirmed reservation for this space
+        const activeReservation = await pool.query(
+            "SELECT id_reserva FROM reservas WHERE id_espacio = $1 AND estado = 'confirmada' LIMIT 1",
+            [reserva.id_espacio]
         );
 
-        res.json({
-            mensaje: 'Reserva actualizada exitosamente',
-            reserva: result.rows[0]
-        });
+        if (activeReservation.rows.length > 0) {
+            return res.status(400).json({
+                error: 'Este espacio ya tiene una reserva activa. Libera el espacio primero.'
+            });
+        }
+
+        // Approve
+        await pool.query("UPDATE reservas SET estado = 'confirmada' WHERE id_reserva = $1", [id]);
+        await pool.query('UPDATE espacios SET disponible = false WHERE id_espacio = $1', [reserva.id_espacio]);
+
+        res.json({ success: true, message: 'Reserva aprobada exitosamente' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error al actualizar reserva' });
+        res.status(500).json({ error: 'Error al aprobar la reserva' });
     }
 });
 
-// 4.5 Get reservation details
-router.get('/:id', async (req, res) => {
+// ─── 5. Admin: Decline/Cancel a reservation ────────────────────────────
+router.put('/:id/rechazar', authMiddleware, async (req, res) => {
     const { id } = req.params;
 
     try {
-        const query = `
-            SELECT 
-                r.*,
-                e.nombre as espacio_nombre,
-                e.capacidad,
-                u.nombre as usuario_nombre
-            FROM reservas r
-            JOIN espacios e ON r.id_espacio = e.id_espacio
-            JOIN usuarios u ON r.id_usuario = u.id_usuario
-            WHERE r.id_reserva = $1
-        `;
-
-        const result = await pool.query(query, [id]);
-
-        if (result.rows.length === 0) {
+        const reservaResult = await pool.query('SELECT * FROM reservas WHERE id_reserva = $1', [id]);
+        if (reservaResult.rows.length === 0) {
             return res.status(404).json({ error: 'Reserva no encontrada' });
         }
 
-        res.json(result.rows[0]);
+        const reserva = reservaResult.rows[0];
+        await pool.query("UPDATE reservas SET estado = 'cancelada' WHERE id_reserva = $1", [id]);
+
+        // If it was a confirmed reservation, free the space
+        if (reserva.estado === 'confirmada') {
+            const nextInLine = await pool.query(
+                "SELECT id_reserva FROM reservas WHERE id_espacio = $1 AND estado = 'pendiente' ORDER BY fecha_creacion ASC LIMIT 1",
+                [reserva.id_espacio]
+            );
+
+            if (nextInLine.rows.length === 0) {
+                await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [reserva.id_espacio]);
+            }
+            // If someone is waiting, admin will approve them manually; space stays occupied for consistency
+        }
+
+        res.json({ success: true, message: 'Reserva rechazada' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error al obtener detalles de la reserva' });
+        res.status(500).json({ error: 'Error al rechazar la reserva' });
     }
 });
 
-// 5. Update reservation status (Admin only)
-router.put('/:id/status', async (req, res) => {
-    const { id } = req.params;
-    const { estado } = req.body;
+// ─── 6. Admin: Free a space (end current usage) ───────────────────────
+router.put('/liberar/:spaceId', authMiddleware, async (req, res) => {
+    const { spaceId } = req.params;
 
     try {
-        const validStates = ['pendiente', 'confirmada', 'cancelada', 'completada'];
-        if (!validStates.includes(estado)) {
-            return res.status(400).json({ error: 'Estado inválido' });
-        }
-
-        const result = await pool.query(
-            'UPDATE reservas SET estado = $1 WHERE id_reserva = $2 RETURNING *',
-            [estado, id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Reserva no encontrada' });
-        }
-
-        res.json({
-            mensaje: 'Reserva actualizada',
-            reserva: result.rows[0]
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al actualizar reserva' });
-    }
-});
-
-// 6. Cancel reservation (user can cancel only if pending)
-router.delete('/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const reservation = await pool.query(
-            'SELECT estado FROM reservas WHERE id_reserva = $1',
-            [id]
-        );
-
-        if (reservation.rows.length === 0) {
-            return res.status(404).json({ error: 'Reserva no encontrada' });
-        }
-
-        if (reservation.rows[0].estado !== 'pendiente') {
-            return res.status(400).json({ error: 'Solo se pueden cancelar reservas en estado pendiente' });
-        }
-
+        // Complete all confirmed reservations for this space
         await pool.query(
-            'UPDATE reservas SET estado = $1 WHERE id_reserva = $2',
-            ['cancelada', id]
+            "UPDATE reservas SET estado = 'completada' WHERE id_espacio = $1 AND estado = 'confirmada'",
+            [spaceId]
         );
 
-        res.json({ mensaje: 'Reserva cancelada exitosamente' });
+        // Make space available
+        await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [spaceId]);
+
+        // Count pending to inform admin
+        const waitlistResult = await pool.query(
+            "SELECT COUNT(*) as count FROM reservas WHERE id_espacio = $1 AND estado = 'pendiente'",
+            [spaceId]
+        );
+
+        const waitlistCount = parseInt(waitlistResult.rows[0].count);
+
+        res.json({
+            success: true,
+            message: waitlistCount > 0
+                ? `Espacio liberado. Hay ${waitlistCount} solicitud(es) pendiente(s) en fila.`
+                : 'Espacio liberado exitosamente.',
+            waitlistCount
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error al cancelar reserva' });
+        res.status(500).json({ error: 'Error al liberar el espacio' });
     }
 });
 

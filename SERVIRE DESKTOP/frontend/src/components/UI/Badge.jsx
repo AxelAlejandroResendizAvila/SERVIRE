@@ -6,6 +6,9 @@ const badgeColors = {
     pending: 'bg-blue-100 text-blue-700 border-blue-200',
     approved: 'bg-green-100 text-success border-green-200',
     waitlisted: 'bg-orange-100 text-warning border-orange-200',
+    declined: 'bg-red-100 text-red-700 border-red-200',
+    completed: 'bg-gray-100 text-gray-600 border-gray-200',
+    danger: 'bg-red-100 text-red-700 border-red-200',
 };
 
 const Badge = ({ status, label }) => {

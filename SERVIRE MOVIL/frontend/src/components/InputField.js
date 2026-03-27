@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '../theme/theme';
 
 export default function InputField({
@@ -12,7 +12,9 @@ export default function InputField({
     style,
     multiline = false,
     numberOfLines = 1,
-    icon
+    icon,
+    rightIcon,
+    onRightIconPress
 }) {
     return (
         <View style={[styles.container, style]}>
@@ -33,6 +35,11 @@ export default function InputField({
                     multiline={multiline}
                     numberOfLines={numberOfLines}
                 />
+                {rightIcon && (
+                    <TouchableOpacity onPress={onRightIconPress} style={styles.rightIconContainer}>
+                        {rightIcon}
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -75,5 +82,8 @@ const styles = StyleSheet.create({
     },
     iconContainer: {
         marginRight: theme.spacing.sm,
+    },
+    rightIconContainer: {
+        marginLeft: theme.spacing.sm,
     },
 });

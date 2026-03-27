@@ -12,6 +12,8 @@ export default function RegistroScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [telefono, setTelefono] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -24,8 +26,9 @@ export default function RegistroScreen({ navigation }) {
             return;
         }
 
-        if (!email.includes('@')) {
-            setError('Por favor ingresa un email válido');
+        const emailRegex = /^[^\s@]+@upq\.(edu\.)?mx$/;
+        if (!emailRegex.test(email.toLowerCase())) {
+            setError('Por favor ingresa un correo institucional válido (@upq.mx o @upq.edu.mx)');
             return;
         }
 
@@ -125,8 +128,16 @@ export default function RegistroScreen({ navigation }) {
                         placeholder="Mínimo 6 caracteres"
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                        rightIcon={
+                            <Ionicons
+                                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                size={20}
+                                color={theme.colors.text.secondary}
+                            />
+                        }
+                        onRightIconPress={() => setShowPassword(!showPassword)}
                         editable={!loading}
                     />
 
@@ -135,8 +146,16 @@ export default function RegistroScreen({ navigation }) {
                         placeholder="Repite tu contraseña"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        secureTextEntry
+                        secureTextEntry={!showConfirmPassword}
                         icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                        rightIcon={
+                            <Ionicons
+                                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"}
+                                size={20}
+                                color={theme.colors.text.secondary}
+                            />
+                        }
+                        onRightIconPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         editable={!loading}
                     />
 

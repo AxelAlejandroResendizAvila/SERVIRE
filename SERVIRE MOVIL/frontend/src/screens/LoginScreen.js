@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { login } = useAuth();
@@ -20,8 +21,9 @@ export default function LoginScreen({ navigation }) {
             return;
         }
 
-        if (!email.includes('@')) {
-            setError('Por favor ingresa un email válido');
+        const emailRegex = /^[^\s@]+@upq\.(edu\.)?mx$/;
+        if (!emailRegex.test(email.toLowerCase())) {
+            setError('Por favor ingresa un correo institucional válido (@upq.mx o @upq.edu.mx)');
             return;
         }
 
@@ -84,8 +86,16 @@ export default function LoginScreen({ navigation }) {
                         placeholder="Introduce tu contraseña"
                         value={password}
                         onChangeText={setPassword}
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                        rightIcon={
+                            <Ionicons
+                                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                size={20}
+                                color={theme.colors.text.secondary}
+                            />
+                        }
+                        onRightIconPress={() => setShowPassword(!showPassword)}
                         editable={!loading}
                     />
 

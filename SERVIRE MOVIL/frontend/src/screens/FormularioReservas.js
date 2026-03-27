@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Alert, ActivityIndicator, TouchableOpacity, FlatList, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, Alert, ActivityIndicator, TouchableOpacity, FlatList, Modal, Image, KeyboardAvoidingView } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import InputField from '../components/InputField';
@@ -16,10 +17,22 @@ export default function FormularioReservas({ navigation, route }) {
     const [loadingSpaces, setLoadingSpaces] = useState(!initialSpace);
     const [showSpaceSelector, setShowSpaceSelector] = useState(!initialSpace);
     const [reason, setReason] = useState('');
-    const [date, setDate] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+
+    // Estados para Fechas y Horas (Usamos objetos Date para el Picker)
+    const [date, setDate] = useState(new Date());
+    const [startTime, setStartTime] = useState(new Date());
+    const [endTime, setEndTime] = useState(new Date(new Date().setHours(new Date().getHours() + 1)));
+
+    // Estados para mostrar/ocultar los calendarios
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showStartPicker, setShowStartPicker] = useState(false);
+    const [showEndPicker, setShowEndPicker] = useState(false);
+
     const [loading, setLoading] = useState(false);
+
+    // Formateadores para mostrar en los inputs
+    const formattedDate = date.toISOString().split('T')[0];
+    const formatTime = (d) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 
     useEffect(() => {
         if (!initialSpace) {
@@ -46,15 +59,37 @@ export default function FormularioReservas({ navigation, route }) {
     };
 
     const calculateDuration = () => {
-        if (!startTime || !endTime) return 0;
-        const [startHour] = startTime.split(':').map(Number);
-        const [endHour] = endTime.split(':').map(Number);
-        return Math.abs(endHour - startHour) || 0;
+        const diffMs = endTime.getTime() - startTime.getTime();
+        const diffHrs = diffMs / (1000 * 60 * 60);
+        return diffHrs > 0 ? diffHrs.toFixed(1) : 0;
     };
 
     const handleConfirm = async () => {
-        if (!date || !startTime || !endTime) {
-            Alert.alert('Error', 'Por favor completa todos los campos');
+        // Asigno las horas elegidas a variables en español y más sencillas de leer
+        const horaInicio = startTime;
+        const horaFin = endTime;
+
+        // Agregué esta validación para asegurarme de que la hora en la que termina la reserva no sea antes ni igual a cuando empieza
+        if (horaFin <= horaInicio) {
+            Alert.alert('Error', 'La hora de fin debe ser después de la hora de inicio.');
+            return;
+        }
+
+        // Saco las horas y minutos exactos para comparar fácilmente el horario de la uni
+        const horaDeInicio = horaInicio.getHours();
+        const minutosDeInicio = horaInicio.getMinutes();
+        const horaDeTermino = horaFin.getHours();
+        const minutosDeTermino = horaFin.getMinutes();
+
+        // Agregué esto para comprobar si la hora de inicio respeta el horario de la universidad (de 7:00 am a 8:40 pm)
+        const inicioEsValido = horaDeInicio >= 7 && (horaDeInicio < 20 || (horaDeInicio === 20 && minutosDeInicio <= 40));
+
+        // Y aquí hago exactamente la misma comprobación pero para la hora de cierre
+        const finEsValido = horaDeTermino >= 7 && (horaDeTermino < 20 || (horaDeTermino === 20 && minutosDeTermino <= 40));
+
+        // Si veo que cualquiera de las dos horas está fuera del horario establecido, detengo todo y lanzo una advertencia
+        if (!inicioEsValido || !finEsValido) {
+            Alert.alert('Horario no válido', 'Las reservas solo pueden ser entre las 07:00 am y las 20:40 pm.');
             return;
         }
 
@@ -66,17 +101,18 @@ export default function FormularioReservas({ navigation, route }) {
         setLoading(true);
 
         try {
-            const [startHour, startMin] = startTime.split(':');
-            const [endHour, endMin] = endTime.split(':');
+            // Construimos las fechas ISO combinando la fecha seleccionada y las horas seleccionadas
+            const fechaInicio = new Date(date);
+            fechaInicio.setHours(startTime.getHours(), startTime.getMinutes(), 0);
 
-            const fechaInicio = new Date(`${date}T${startHour}:${startMin}:00`).toISOString();
-            const fechaFin = new Date(`${date}T${endHour}:${endMin}:00`).toISOString();
+            const fechaFin = new Date(date);
+            fechaFin.setHours(endTime.getHours(), endTime.getMinutes(), 0);
 
             const response = await createReservation({
                 id_espacio: space.id,
-                fecha_inicio: fechaInicio,
-                fecha_fin: fechaFin,
-                precio_total: 0, // Puedes calcular esto según tu lógica
+                fecha_inicio: fechaInicio.toISOString(),
+                fecha_fin: fechaFin.toISOString(),
+                precio_total: 0,
             });
 
             if (response.reserva || response.success) {
@@ -99,10 +135,16 @@ export default function FormularioReservas({ navigation, route }) {
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
             <Header title="Nueva reserva" showBack />
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+            >
 
                 {/* Selector de Espacio */}
                 <TouchableOpacity onPress={() => setShowSpaceSelector(true)}>
@@ -205,39 +247,83 @@ export default function FormularioReservas({ navigation, route }) {
                 <View style={styles.formSection}>
                     <Text style={styles.sectionTitle}>Fecha y Hora</Text>
 
-                    <InputField
-                        label="Fecha (YYYY-MM-DD)"
-                        placeholder="2025-02-15"
-                        value={date}
-                        onChangeText={setDate}
-                        icon={<Ionicons name="calendar-outline" size={20} color={theme.colors.text.secondary} />}
-                        editable={!loading}
-                    />
+                    {/* Selector de Fecha */}
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)} disabled={loading}>
+                        <View pointerEvents="none">
+                            <InputField
+                                label="Fecha"
+                                value={formattedDate}
+                                icon={<Ionicons name="calendar-outline" size={20} color={theme.colors.text.secondary} />}
+                                editable={false}
+                            />
+                        </View>
+                    </TouchableOpacity>
 
                     <View style={styles.timeRow}>
-                        <View style={styles.timeInput}>
-                            <InputField
-                                label="Inicio (HH:MM)"
-                                placeholder="10:00"
-                                value={startTime}
-                                onChangeText={setStartTime}
-                                icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
-                                editable={!loading}
-                            />
-                        </View>
+                        {/* Selector de Hora Inicio */}
+                        <TouchableOpacity style={styles.timeInput} onPress={() => setShowStartPicker(true)} disabled={loading}>
+                            <View pointerEvents="none">
+                                <InputField
+                                    label="Inicio"
+                                    value={formatTime(startTime)}
+                                    icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
+
                         <View style={styles.timeSpacer} />
-                        <View style={styles.timeInput}>
-                            <InputField
-                                label="Fin (HH:MM)"
-                                placeholder="12:00"
-                                value={endTime}
-                                onChangeText={setEndTime}
-                                icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
-                                editable={!loading}
-                            />
-                        </View>
+
+                        {/* Selector de Hora Fin */}
+                        <TouchableOpacity style={styles.timeInput} onPress={() => setShowEndPicker(true)} disabled={loading}>
+                            <View pointerEvents="none">
+                                <InputField
+                                    label="Fin"
+                                    value={formatTime(endTime)}
+                                    icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
+                                    editable={false}
+                                />
+                            </View>
+                        </TouchableOpacity>
                     </View>
                 </View>
+
+                {/* Pickers Nativos */}
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={date}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                            setShowDatePicker(Platform.OS === 'ios');
+                            if (selectedDate) setDate(selectedDate);
+                        }}
+                    />
+                )}
+                {showStartPicker && (
+                    <DateTimePicker
+                        value={startTime}
+                        mode="time"
+                        is24Hour={true}
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                            setShowStartPicker(Platform.OS === 'ios');
+                            if (selectedDate) setStartTime(selectedDate);
+                        }}
+                    />
+                )}
+                {showEndPicker && (
+                    <DateTimePicker
+                        value={endTime}
+                        mode="time"
+                        is24Hour={true}
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                            setShowEndPicker(Platform.OS === 'ios');
+                            if (selectedDate) setEndTime(selectedDate);
+                        }}
+                    />
+                )}
 
                 <View style={styles.formSection}>
                     <Text style={styles.sectionTitle}>Detalles</Text>
@@ -271,7 +357,7 @@ export default function FormularioReservas({ navigation, route }) {
 
             </ScrollView>
 
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 

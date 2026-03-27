@@ -24,14 +24,14 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = await getToken();
         if (token) {
-          // Obtener datos del usuario
-          const userData = await AsyncStorage.getItem('userData');
-          if (userData) {
-            setUser(JSON.parse(userData));
-          }
+          const response = await axios.get(`${config.baseURL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setUser(response.data.usuario);
         }
       } catch (error) {
         console.error('Error verificando autenticación:', error);
+        await removeToken();
       } finally {
         setLoading(false);
       }
@@ -50,9 +50,8 @@ export const AuthProvider = ({ children }) => {
 
       const { token, usuario } = response.data;
 
-      // Guardar token y datos del usuario
+      // Guardar token
       await saveToken(token);
-      await AsyncStorage.setItem('userData', JSON.stringify(usuario));
 
       setUser(usuario);
       return response.data;
@@ -76,9 +75,8 @@ export const AuthProvider = ({ children }) => {
 
       const { token, usuario } = response.data;
 
-      // Guardar token y datos del usuario
+      // Guardar token
       await saveToken(token);
-      await AsyncStorage.setItem('userData', JSON.stringify(usuario));
 
       setUser(usuario);
       return response.data;
@@ -92,7 +90,6 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await removeToken();
-      await AsyncStorage.removeItem('userData');
       setUser(null);
     } catch (error) {
       console.error('Error en logout:', error);

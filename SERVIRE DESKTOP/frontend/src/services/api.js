@@ -36,6 +36,15 @@ export const register = async (userData) => {
     return data;
 };
 
+export const getMe = async () => {
+    const res = await fetch(`${BASE_URL}/auth/me`, {
+        headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al obtener usuario');
+    return data;
+};
+
 export const getSpaces = async () => {
     try {
         const res = await fetch(`${BASE_URL}/espacios`);

@@ -58,7 +58,7 @@ const Login = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-text-primary mb-1">
-                            Contraseña *Contraseña</label>
+                            Contraseña *</label>
                         <div className="relative">
                             <input
                                 type={showPassword ? 'text' : 'password'}

@@ -189,7 +189,7 @@ export default function FormularioReservas({ navigation, route }) {
                             <TouchableOpacity onPress={() => setShowSpaceSelector(false)}>
                                 <Ionicons name="close" size={24} color={theme.colors.primary} />
                             </TouchableOpacity>
-                            <Text style={styles.modalTitle}>Selecciona un espacio</Text>
+                            <Text style={styles.modalTitle}>Información del espacio</Text>
                             <View style={{ width: 24 }} />
                         </View>
 
@@ -199,7 +199,46 @@ export default function FormularioReservas({ navigation, route }) {
                             </View>
                         ) : (
                             <FlatList
-                                data={spaces}
+                                data={spaces.filter(s => s.id !== space?.id)}
+                                ListHeaderComponent={() => (
+                                    <View>
+                                        {space && (
+                                            <View style={styles.selectedSpaceDetail}>
+                                                {space.image ? (
+                                                    <Image
+                                                        source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                                        style={styles.detailImage}
+                                                    />
+                                                ) : (
+                                                    <View style={styles.detailImagePlaceholder}>
+                                                        <Ionicons name="business" size={60} color={theme.colors.primary} />
+                                                    </View>
+                                                )}
+                                                <Text style={styles.detailName}>{space.name}</Text>
+                                                <Text style={styles.detailType}>{space.type}</Text>
+
+                                                <View style={styles.detailInfoRow}>
+                                                    <Ionicons name="location-outline" size={16} color={theme.colors.text.secondary} />
+                                                    <Text style={styles.detailInfoText}>{space.location || 'Ubicación no especificada'}</Text>
+                                                </View>
+                                                <View style={styles.detailInfoRow}>
+                                                    <Ionicons name="people-outline" size={16} color={theme.colors.text.secondary} />
+                                                    <Text style={styles.detailInfoText}>Capacidad: {space.capacity || '?'} personas</Text>
+                                                </View>
+                                                <View style={styles.detailInfoRow}>
+                                                    <Ionicons name="information-circle-outline" size={16} color={theme.colors.text.secondary} />
+                                                    <Text style={styles.detailInfoText}>Estado: {space.state}</Text>
+                                                </View>
+                                                {space.description && (
+                                                    <Text style={styles.detailDescription}>{space.description}</Text>
+                                                )}
+                                            </View>
+                                        )}
+                                        <Text style={styles.submenuTitle}>
+                                            {space ? "Otros espacios disponibles" : "Todos los espacios disponibles"}
+                                        </Text>
+                                    </View>
+                                )}
                                 keyExtractor={(item) => item.id.toString()}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity onPress={() => handleSelectSpace(item)}>
@@ -556,5 +595,68 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
+    },
+    selectedSpaceDetail: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.md,
+        padding: theme.spacing.lg,
+        marginBottom: theme.spacing.xl,
+        alignItems: 'center',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    detailImage: {
+        width: '100%',
+        height: 200,
+        borderRadius: theme.borderRadius.md,
+        marginBottom: theme.spacing.md,
+    },
+    detailImagePlaceholder: {
+        width: '100%',
+        height: 200,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    detailName: {
+        ...theme.typography.header,
+        fontSize: 22,
+        marginBottom: theme.spacing.xs,
+        textAlign: 'center',
+    },
+    detailType: {
+        ...theme.typography.subheader,
+        color: theme.colors.primary,
+        marginBottom: theme.spacing.md,
+        textAlign: 'center',
+    },
+    detailInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: theme.spacing.sm,
+        width: '100%',
+    },
+    detailInfoText: {
+        ...theme.typography.body,
+        marginLeft: theme.spacing.sm,
+        color: theme.colors.text.secondary,
+    },
+    detailDescription: {
+        ...theme.typography.body,
+        marginTop: theme.spacing.md,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    submenuTitle: {
+        ...theme.typography.subheader,
+        fontSize: 18,
+        color: theme.colors.secondary,
+        marginBottom: theme.spacing.md,
+        marginTop: theme.spacing.sm,
     },
 });

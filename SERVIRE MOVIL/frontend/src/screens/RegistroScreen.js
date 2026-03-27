@@ -43,7 +43,7 @@ export default function RegistroScreen({ navigation }) {
         setError('');
 
         try {
-            const response = await register(nombre + ' ' + apellidos, email, password);
+            const response = await register(nombre, apellidos, email, password, telefono);
 
             if (response.token && response.usuario) {
                 Alert.alert('Éxito', 'Te has registrado correctamente. ¡Bienvenido!');

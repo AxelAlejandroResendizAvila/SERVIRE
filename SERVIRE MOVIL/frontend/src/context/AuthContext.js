@@ -63,13 +63,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (nombre, email, password) => {
+  const register = async (nombre, apellidos, email, password, telefono = '') => {
     try {
       setLoading(true);
       const response = await axios.post(`${config.baseURL}/auth/register`, {
         nombre,
+        apellidos,
         email,
         contrasena: password,
+        telefono,
       });
 
       const { token, usuario } = response.data;

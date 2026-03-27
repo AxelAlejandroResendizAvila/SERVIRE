@@ -109,17 +109,14 @@ export default function Cuenta({ navigation }) {
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Información personal</Text>
-                    <InputField
-                        label="Nombre completo"
-                        value={user.nombre}
-                        editable={false}
-                    />
-                    <InputField
-                        label="Correo electrónico"
-                        value={user.email}
-                        keyboardType="email-address"
-                        editable={false}
-                    />
+                    <View style={styles.infoField}>
+                        <Text style={styles.infoLabel}>Nombre completo</Text>
+                        <Text style={styles.infoValue}>{user.nombre}</Text>
+                    </View>
+                    <View style={styles.infoField}>
+                        <Text style={styles.infoLabel}>Correo electrónico</Text>
+                        <Text style={styles.infoValue}>{user.email}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.section}>
@@ -198,8 +195,28 @@ const styles = StyleSheet.create({
     },
     avatarText: {
         fontSize: 32,
+        color: '#fff',
         fontWeight: 'bold',
-        color: theme.colors.text.inverse,
+    },
+    infoField: {
+        marginVertical: theme.spacing.md,
+    },
+    infoLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+        marginBottom: theme.spacing.xs,
+    },
+    infoValue: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        backgroundColor: theme.colors.background,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: theme.colors.border || '#e0e0e0',
     },
     profileName: {
         ...theme.typography.header,

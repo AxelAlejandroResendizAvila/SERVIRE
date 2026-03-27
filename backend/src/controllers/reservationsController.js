@@ -49,6 +49,8 @@ export const getMyReservations = async (req, res) => {
         TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         r.estado,
+        r.fecha_inicio as "startDateRaw",
+        r.fecha_fin as "endDateRaw",
         r.motivo_estado,
         (
           SELECT COUNT(*) FROM reservas r2 
@@ -72,7 +74,7 @@ export const getMyReservations = async (req, res) => {
         const reservations = result.rows.map(row => {
             let status = 'waitlisted';
             if (row.estado === 'confirmada') status = 'approved';
-            if (row.estado === 'completada') status = 'completed';
+            if (row.estado === 'completada' || row.estado === 'terminada') status = 'completed';
             if (row.estado === 'cancelada') status = 'declined';
 
             return {
@@ -81,6 +83,8 @@ export const getMyReservations = async (req, res) => {
                 spaceName: row.spaceName,
                 date: row.date,
                 time: row.time,
+                startDateRaw: row.startDateRaw,
+                endDateRaw: row.endDateRaw,
                 status,
                 motivo_rechazo: row.motivo_estado, 
                 waitlistPosition: status === 'waitlisted' ? parseInt(row.queuePosition) : null,
@@ -109,6 +113,8 @@ export const getAdminRequests = async (req, res) => {
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         TO_CHAR(r.fecha_creacion, 'YYYY-MM-DD HH24:MI') as "createdAt",
         r.estado,
+        r.fecha_inicio as "startDateRaw",
+        r.fecha_fin as "endDateRaw",
         (
           SELECT COUNT(*) FROM reservas r2 
           WHERE r2.id_espacio = r.id_espacio 
@@ -134,7 +140,7 @@ export const getAdminRequests = async (req, res) => {
             let status = 'pending';
             if (row.estado === 'confirmada') status = 'approved';
             if (row.estado === 'cancelada') status = 'declined';
-            if (row.estado === 'completada') status = 'completed';
+            if (row.estado === 'completada' || row.estado === 'terminada') status = 'completed';
 
             return {
                 id: row.id,
@@ -145,6 +151,8 @@ export const getAdminRequests = async (req, res) => {
                 space: row.space,
                 date: row.date,
                 time: row.time,
+                startDateRaw: row.startDateRaw,
+                endDateRaw: row.endDateRaw,
                 createdAt: row.createdAt,
                 status,
                 queuePosition: row.estado === 'pendiente' ? parseInt(row.queuePosition) : null

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import spacesRoutes from './routes/spacesRoutes.js';
 import reservationsRoutes from './routes/reservationsRoutes.js';
+import { startCronJobs } from './cron/cleaner.js';
 
 dotenv.config();
 
@@ -34,5 +35,6 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server corriendo en el puerto ${PORT}`);
+    startCronJobs();
 });
 

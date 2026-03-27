@@ -5,6 +5,73 @@ import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import { getAdminRequests, approveReservation, declineReservation } from '../services/api';
 
+const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
+    const [status, setStatus] = useState(''); 
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        const updateTimer = () => {
+            const start = new Date(startDateRaw).getTime();
+            const end = new Date(endDateRaw).getTime();
+            const now = new Date().getTime();
+
+            if (now < start) {
+                setStatus('pending');
+                const distance = start - now;
+                const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                let timeStr = '';
+                if (d > 0) {
+                    timeStr = `${d}d ${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+                } else {
+                    timeStr = `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+                }
+                
+                setTimeLeft(timeStr);
+                return;
+            }
+
+            if (now >= start && now < end) {
+                setStatus('active');
+                const distance = end - now;
+                const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((distance % (1000 * 60)) / 1000);
+                setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+                return;
+            }
+
+            setStatus('finished');
+            setTimeLeft('Terminado');
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [startDateRaw, endDateRaw]);
+
+    if (status === 'finished') {
+        return <span className="inline-block mt-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">Terminado</span>;
+    }
+
+    if (status === 'pending') {
+        return (
+            <span className="inline-block mt-1 text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded shadow-sm border border-yellow-200">
+                ⏱️ Empieza en: {timeLeft}
+            </span>
+        );
+    }
+
+    return (
+        <span className="inline-block mt-1 text-xs font-mono font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded shadow-sm border border-blue-200">
+            ▶ En curso: {timeLeft}
+        </span>
+    );
+};
+
 const AdminPanel = () => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -160,7 +227,12 @@ const AdminPanel = () => {
                                         </td>
                                         <td className="py-4 px-6 text-gray-700 font-medium">{req.space}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">{req.date}</td>
-                                        <td className="py-4 px-6 text-gray-600 text-sm">{req.time}</td>
+                                        <td className="py-4 px-6 text-gray-600 text-sm">
+                                            <div>{req.time}</div>
+                                            {activeTab === 'approved' && req.startDateRaw && req.endDateRaw && (
+                                                <CountdownTimer startDateRaw={req.startDateRaw} endDateRaw={req.endDateRaw} />
+                                            )}
+                                        </td>
                                         <td className="py-4 px-6">
                                             <Badge
                                                 status={req.status === 'completed' ? 'approved' : req.status === 'declined' ? 'ocupado' : req.status}

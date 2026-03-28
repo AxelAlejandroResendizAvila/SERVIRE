@@ -13,6 +13,21 @@ export const createReservation = async (req, res) => {
         const start = fecha_inicio || new Date().toISOString();
         const end = fecha_fin || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
+        // Validar que no haya conflictos de horarios para el mismo espacio (reservas pendientes y confirmadas)
+        const conflictQuery = `
+            SELECT * FROM reservas 
+            WHERE id_espacio = $1 
+            AND estado IN ('pendiente', 'confirmada')
+            AND (
+                (fecha_inicio < $3 AND fecha_fin > $2) -- Hay algún solapamiento
+            )
+        `;
+        const conflictResult = await pool.query(conflictQuery, [id_espacio, start, end]);
+
+        if (conflictResult.rows.length > 0) {
+            return res.status(400).json({ error: 'El espacio ya está reservado en este horario' });
+        }
+
         const query = `
       INSERT INTO reservas (id_usuario, id_espacio, fecha_inicio, fecha_fin, estado)
       VALUES ($1, $2, $3, $4, 'pendiente')
@@ -46,6 +61,7 @@ export const getMyReservations = async (req, res) => {
         r.id_reserva as id,
         r.id_espacio as "spaceId",
         e.nombre as "spaceName",
+        ed.nombre as "buildingName",
         TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         r.estado,
@@ -65,6 +81,7 @@ export const getMyReservations = async (req, res) => {
         ) as "queueTotal"
       FROM reservas r
       JOIN espacios e ON r.id_espacio = e.id_espacio
+      LEFT JOIN edificios ed ON e.id_edificio = ed.id_edificio
       WHERE r.id_usuario = $1
       ORDER BY r.fecha_creacion DESC
     `;
@@ -81,6 +98,7 @@ export const getMyReservations = async (req, res) => {
                 id: row.id,
                 spaceId: row.spaceId,
                 spaceName: row.spaceName,
+                buildingName: row.buildingName,
                 date: row.date,
                 time: row.time,
                 startDateRaw: row.startDateRaw,

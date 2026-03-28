@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
-// Importamos Button si lo llegas a necesitar, aunque aquí usamos TouchableOpacity para más control
 import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyReservations, cancelReservation } from '../services/api';
@@ -136,19 +135,18 @@ export default function MisReservas({ navigation, route }) {
             ) : (
                 list.map((reservation, index) => (
                     <Card key={`${reservation.id}-${index}`} style={styles.reservationCard}>
+                        {/* Cabecera de la Tarjeta */}
                         <View style={styles.cardHeader}>
                             <View style={styles.spaceInfo}>
                                 <Ionicons name="location-outline" size={18} color={theme.colors.primary} />
-                                <Text style={styles.spaceText} numberOfLines={1}>{reservation.space}</Text>
-                            </View>
-                            <View style={[
-                                styles.statusPill,
-                                { borderColor: getStatusColor(reservation.status), backgroundColor: getStatusColor(reservation.status) + '15' }
-                            ]}>
-                                <View style={[styles.statusDot, { backgroundColor: getStatusColor(reservation.status) }]} />
-                                <Text style={[styles.statusText, { color: getStatusColor(reservation.status) }]}>
-                                    {getStatusLabel(reservation.status)}
-                                </Text>
+                                <View style={styles.spaceTextContainer}>
+                                    <Text style={styles.spaceText} numberOfLines={1}>{reservation.spaceName}</Text>
+                                    {reservation.buildingName && (
+                                        <Text style={styles.buildingText} numberOfLines={1}>
+                                            <Ionicons name="business-outline" size={12} color={theme.colors.text.secondary} /> {reservation.buildingName}
+                                        </Text>
+                                    )}
+                                </View>
                             </View>
                         </View>
 
@@ -172,9 +170,22 @@ export default function MisReservas({ navigation, route }) {
 
                             {/* Detalles de la reserva */}
                             <View style={styles.detailsContainer}>
-                                <View style={styles.dateHeader}>
-                                    <Ionicons name="calendar-outline" size={16} color={theme.colors.text.secondary} />
-                                    <Text style={styles.dateText}>{formatDate(reservation.date)}</Text>
+                                {/* Contenedor que alinea Fecha a la izquierda y Píldora a la derecha */}
+                                <View style={styles.dateAndStatusContainer}>
+                                    <View style={styles.dateHeader}>
+                                        <Ionicons name="calendar-outline" size={16} color={theme.colors.text.secondary} />
+                                        <Text style={styles.dateText}>{formatDate(reservation.date)}</Text>
+                                    </View>
+
+                                    <View style={[
+                                        styles.statusPill,
+                                        { borderColor: getStatusColor(reservation.status), backgroundColor: getStatusColor(reservation.status) + '15' }
+                                    ]}>
+                                        <View style={[styles.statusDot, { backgroundColor: getStatusColor(reservation.status) }]} />
+                                        <Text style={[styles.statusText, { color: getStatusColor(reservation.status) }]}>
+                                            {getStatusLabel(reservation.status)}
+                                        </Text>
+                                    </View>
                                 </View>
 
                                 {reservation.createdAt && (
@@ -197,9 +208,9 @@ export default function MisReservas({ navigation, route }) {
                                 {/* Motivo de rechazo (si fue cancelada) */}
                                 {reservation.status === 'declined' && reservation.motivo_rechazo && (
                                     <View style={styles.reasonContainer}>
-                                        <Ionicons name="warning-outline" size={16} color={theme.colors.error} />
+                                        <Ionicons name="information-circle-outline" size={16} color={theme.colors.error} />
                                         <Text style={styles.reasonText} numberOfLines={3}>
-                                            {reservation.motivo_rechazo}
+                                            <Text style={{fontWeight: '600'}}>Motivo rechazo: </Text>{reservation.motivo_rechazo}
                                         </Text>
                                     </View>
                                 )}
@@ -307,7 +318,7 @@ const styles = StyleSheet.create({
     },
     tabsContainer: {
         flexDirection: 'row',
-        backgroundColor: theme.colors.border + '30', // Fondo gris claro
+        backgroundColor: theme.colors.border + '30',
         borderRadius: theme.borderRadius.lg,
         padding: 4,
     },
@@ -318,7 +329,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.borderRadius.md,
     },
     activeTab: {
-        backgroundColor: theme.colors.surface || '#fff', // Fondo blanco para la pestaña activa
+        backgroundColor: theme.colors.surface || '#fff',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
@@ -338,7 +349,6 @@ const styles = StyleSheet.create({
         padding: theme.spacing.lg,
         paddingBottom: theme.spacing.xl * 2,
     },
-    // Empty State Styles
     emptyContainer: {
         flex: 1,
         alignItems: 'center',
@@ -368,7 +378,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
-    // Loading & Error
     loadingContainer: {
         flex: 1,
         alignItems: 'center',
@@ -413,13 +422,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 16,
     },
-    // Cards
     reservationCard: {
         padding: theme.spacing.md,
         marginBottom: theme.spacing.lg,
         borderRadius: theme.borderRadius.lg,
         borderWidth: 1,
-        borderColor: theme.colors.border + '60', // Borde un poco más visible
+        borderColor: theme.colors.border + '60',
         backgroundColor: theme.colors.surface || '#ffffff',
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -441,7 +449,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: theme.spacing.xs,
         flex: 1,
-        paddingRight: theme.spacing.sm,
+    },
+    spaceTextContainer: {
+        flex: 1,
+        flexDirection: 'column',
     },
     spaceText: {
         ...theme.typography.h3,
@@ -449,6 +460,11 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: theme.colors.text.primary,
         flexShrink: 1,
+    },
+    buildingText: {
+        fontSize: 12,
+        color: theme.colors.text.secondary,
+        marginTop: 2,
     },
     cardContent: {
         flexDirection: 'column',
@@ -489,10 +505,15 @@ const styles = StyleSheet.create({
     detailsContainer: {
         flex: 1,
     },
+    dateAndStatusContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.sm,
+    },
     dateHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: theme.spacing.sm,
         gap: theme.spacing.sm,
     },
     dateText: {
@@ -512,14 +533,12 @@ const styles = StyleSheet.create({
         color: theme.colors.text.secondary,
     },
     statusPill: {
-        alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 4,
         borderRadius: theme.borderRadius.full,
-        marginTop: 4,
         gap: 6,
     },
     statusDot: {
@@ -535,7 +554,7 @@ const styles = StyleSheet.create({
     bookingReasonContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginTop: theme.spacing.md,
+        marginTop: theme.spacing.sm,
         paddingTop: theme.spacing.sm,
         borderTopWidth: 1,
         borderTopColor: theme.colors.border + '40',
@@ -550,7 +569,7 @@ const styles = StyleSheet.create({
     reasonContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        marginTop: theme.spacing.md,
+        marginTop: theme.spacing.sm,
         backgroundColor: theme.colors.error + '10',
         padding: theme.spacing.sm,
         borderRadius: theme.borderRadius.sm,
@@ -566,7 +585,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: theme.spacing.md,
         paddingTop: theme.spacing.md,
-        marginTop: theme.spacing.md,
+        marginTop: theme.spacing.sm,
         borderTopWidth: 1,
         borderTopColor: theme.colors.border + '50',
     },

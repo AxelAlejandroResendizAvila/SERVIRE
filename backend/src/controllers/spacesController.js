@@ -56,6 +56,7 @@ export const getAllSpaces = async (req, res) => {
             image: row.image,
             description: row.description,
             location: row.location,
+            buildingId: row.buildingId,
             state: row.is_available ? 'disponible' : 'ocupado',
             waitlistCount: parseInt(row.waitlistCount)
         }));

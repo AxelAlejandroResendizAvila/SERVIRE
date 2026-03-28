@@ -7,12 +7,13 @@ import InputField from '../components/InputField';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
-import { createReservation, getSpaces } from '../services/api';
+import { createReservation, getSpaces, getSpaceById } from '../services/api';
 import { config } from '../config';
 
 export default function FormularioReservas({ navigation, route }) {
     const initialSpace = route?.params?.space || null;
     const [space, setSpace] = useState(initialSpace);
+    const [spaceGallery, setSpaceGallery] = useState([]);
     const [spaces, setSpaces] = useState([]);
     const [loadingSpaces, setLoadingSpaces] = useState(!initialSpace);
     const [showSpaceSelector, setShowSpaceSelector] = useState(!initialSpace);
@@ -32,13 +33,38 @@ export default function FormularioReservas({ navigation, route }) {
 
     // Formateadores para mostrar en los inputs
     const formattedDate = date.toISOString().split('T')[0];
-    const formatTime = (d) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    const formatTime = (d) => {
+        let hours = d.getHours();
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+    };
 
     useEffect(() => {
         if (!initialSpace) {
             fetchSpaces();
         }
     }, []);
+
+    // Cargar galería cuando space cambia (sea por initialSpace o por selección manual)
+    useEffect(() => {
+        if (space && space.id) {
+            loadSpaceGallery(space.id);
+        }
+    }, [space?.id]);
+
+    const loadSpaceGallery = async (spaceId) => {
+        try {
+            const details = await getSpaceById(spaceId);
+            if (details && details.gallery) {
+                setSpaceGallery(details.gallery);
+            }
+        } catch (err) {
+            console.error('Error fetching space details:', err);
+        }
+    };
 
     const fetchSpaces = async () => {
         try {
@@ -56,30 +82,52 @@ export default function FormularioReservas({ navigation, route }) {
     const handleSelectSpace = (selectedSpace) => {
         setSpace(selectedSpace);
         setShowSpaceSelector(false);
+        // La galería se cargará automáticamente en el useEffect
     };
 
     const calculateDuration = () => {
-        const diffMs = endTime.getTime() - startTime.getTime();
-        const diffHrs = diffMs / (1000 * 60 * 60);
+        const startTotalHours = startTime.getHours() + (startTime.getMinutes() / 60);
+        const endTotalHours = endTime.getHours() + (endTime.getMinutes() / 60);
+        const diffHrs = endTotalHours - startTotalHours;
         return diffHrs > 0 ? diffHrs.toFixed(1) : 0;
     };
 
     const handleConfirm = async () => {
-        // Asigno las horas elegidas a variables en español y más sencillas de leer
-        const horaInicio = startTime;
-        const horaFin = endTime;
+        const horaDeInicio = startTime.getHours();
+        const minutosDeInicio = startTime.getMinutes();
+        const horaDeTermino = endTime.getHours();
+        const minutosDeTermino = endTime.getMinutes();
 
-        // Agregué esta validación para asegurarme de que la hora en la que termina la reserva no sea antes ni igual a cuando empieza
-        if (horaFin <= horaInicio) {
-            Alert.alert('Error', 'La hora de fin debe ser después de la hora de inicio.');
+        // Validación: verificar que la fecha no sea hoy con una hora en el pasado
+        const today = new Date();
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+            Alert.alert('Error', 'No puedes reservar en fechas pasadas');
             return;
         }
 
-        // Saco las horas y minutos exactos para comparar fácilmente el horario de la uni
-        const horaDeInicio = horaInicio.getHours();
-        const minutosDeInicio = horaInicio.getMinutes();
-        const horaDeTermino = horaFin.getHours();
-        const minutosDeTermino = horaFin.getMinutes();
+        // Si es hoy, verificar que la hora de inicio no sea en el pasado
+        if (selectedDate.getTime() === today.getTime()) {
+            const nowDateObj = new Date();
+            const selectedStartTime = new Date(date);
+            selectedStartTime.setHours(horaDeInicio, minutosDeInicio, 0);
+            
+            if (selectedStartTime < nowDateObj) {
+                Alert.alert('Error', 'No puedes reservar en horas que ya pasaron');
+                return;
+            }
+        }
+
+        const inicioTotalMinutos = horaDeInicio * 60 + minutosDeInicio;
+        const finTotalMinutos = horaDeTermino * 60 + minutosDeTermino;
+
+        if (finTotalMinutos <= inicioTotalMinutos) {
+            Alert.alert('Error', 'La hora de fin debe ser después de la hora de inicio.');
+            return;
+        }
 
         // Agregué esto para comprobar si la hora de inicio respeta el horario de la universidad (de 7:00 am a 8:40 pm)
         const inicioEsValido = horaDeInicio >= 7 && (horaDeInicio < 20 || (horaDeInicio === 20 && minutosDeInicio <= 40));
@@ -127,7 +175,6 @@ export default function FormularioReservas({ navigation, route }) {
                 Alert.alert('Error', 'No se pudo crear la reserva');
             }
         } catch (error) {
-            console.error('Error creando reserva:', error);
             Alert.alert('Error', error.message || 'Error al crear la reserva');
         } finally {
             setLoading(false);
@@ -153,15 +200,21 @@ export default function FormularioReservas({ navigation, route }) {
                             <Image
                                 source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
                                 style={styles.spaceImage}
+                                resizeMode="cover"
                             />
                         ) : (
                             <View style={styles.spaceImagePlaceholder}>
-                                <Ionicons name="business" size={40} color={theme.colors.primary} />
+                                <Ionicons name="business" size={60} color={theme.colors.primary} />
                             </View>
                         )}
                         <View style={styles.spaceDetails}>
-                            <Text style={styles.spaceName}>{space?.name || 'Selecciona un espacio'}</Text>
-                            <Text style={styles.spaceType}>{space?.type || 'Haz clic para elegir'}</Text>
+                            <View style={styles.spaceHeaderRow}>
+                                <View style={styles.spaceTextContainer}>
+                                    <Text style={styles.spaceName}>{space?.name || 'Selecciona un espacio'}</Text>
+                                    <Text style={styles.spaceType}>{space?.type || 'Haz clic para elegir'}</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
+                            </View>
                             <Text style={styles.spaceCapacity}>
                                 📍 {space?.location || 'Ubicación no especificada'}
                             </Text>
@@ -174,9 +227,32 @@ export default function FormularioReservas({ navigation, route }) {
                                 </Text>
                             )}
                         </View>
-                        <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
                     </Card>
                 </TouchableOpacity>
+
+                {/* Galería de imágenes del espacio */}
+                {spaceGallery && spaceGallery.length > 0 && (
+                    <View style={styles.galleryContainer}>
+                        <Text style={styles.galleryTitle}>Más fotos del espacio</Text>
+                        <FlatList
+                            data={spaceGallery}
+                            renderItem={({ item }) => (
+                                <View style={styles.galleryItem}>
+                                    <Image
+                                        source={{ uri: `${config.baseURL.replace('/api', '')}${item.url}` }}
+                                        style={styles.galleryImage}
+                                        resizeMode="cover"
+                                    />
+                                </View>
+                            )}
+                            keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            pagingEnabled
+                            scrollEventThrottle={16}
+                        />
+                    </View>
+                )}
 
                 {/* Modal para seleccionar espacios */}
                 <Modal
@@ -208,6 +284,7 @@ export default function FormularioReservas({ navigation, route }) {
                                                     <Image
                                                         source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
                                                         style={styles.detailImage}
+                                                        resizeMode="cover"
                                                     />
                                                 ) : (
                                                     <View style={styles.detailImagePlaceholder}>
@@ -247,6 +324,7 @@ export default function FormularioReservas({ navigation, route }) {
                                                 <Image
                                                     source={{ uri: `${config.baseURL.replace('/api', '')}${item.image}` }}
                                                     style={styles.spaceListImage}
+                                                    resizeMode="cover"
                                                 />
                                             ) : (
                                                 <View style={styles.spaceListImagePlaceholder}>
@@ -254,25 +332,27 @@ export default function FormularioReservas({ navigation, route }) {
                                                 </View>
                                             )}
                                             <View style={styles.spaceListContent}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.spaceListName}>{item.name}</Text>
-                                                    <Text style={styles.spaceListType}>{item.type}</Text>
-                                                    {item.location && (
-                                                        <Text style={styles.spaceListLocation}>📍 {item.location}</Text>
-                                                    )}
-                                                    <Text style={styles.spaceListCapacity}>
-                                                        👥 {item.capacity} personas
-                                                    </Text>
-                                                    {item.description && (
-                                                        <Text style={styles.spaceListDescription} numberOfLines={1}>
-                                                            {item.description}
-                                                        </Text>
-                                                    )}
+                                                <View style={styles.spaceListHeader}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.spaceListName}>{item.name}</Text>
+                                                        <Text style={styles.spaceListType}>{item.type}</Text>
+                                                    </View>
+                                                    <View style={[
+                                                        styles.statusDot,
+                                                        { backgroundColor: item.state === 'disponible' ? theme.colors.status.success : theme.colors.status.warning }
+                                                    ]} />
                                                 </View>
-                                                <View style={[
-                                                    styles.statusDot,
-                                                    { backgroundColor: item.state === 'disponible' ? theme.colors.status.success : theme.colors.status.warning }
-                                                ]} />
+                                                {item.location && (
+                                                    <Text style={styles.spaceListLocation}>📍 {item.location}</Text>
+                                                )}
+                                                <Text style={styles.spaceListCapacity}>
+                                                    👥 {item.capacity} personas
+                                                </Text>
+                                                {item.description && (
+                                                    <Text style={styles.spaceListDescription} numberOfLines={1}>
+                                                        {item.description}
+                                                    </Text>
+                                                )}
                                             </View>
                                         </Card>
                                     </TouchableOpacity>
@@ -343,7 +423,7 @@ export default function FormularioReservas({ navigation, route }) {
                     <DateTimePicker
                         value={startTime}
                         mode="time"
-                        is24Hour={true}
+                        is24Hour={false}
                         display="default"
                         onChange={(event, selectedDate) => {
                             setShowStartPicker(Platform.OS === 'ios');
@@ -355,7 +435,7 @@ export default function FormularioReservas({ navigation, route }) {
                     <DateTimePicker
                         value={endTime}
                         mode="time"
-                        is24Hour={true}
+                        is24Hour={false}
                         display="default"
                         onChange={(event, selectedDate) => {
                             setShowEndPicker(Platform.OS === 'ios');
@@ -409,32 +489,42 @@ const styles = StyleSheet.create({
         padding: theme.spacing.lg,
     },
     spaceInfoCard: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
+        flexDirection: 'column',
+        alignItems: 'stretch',
         marginBottom: theme.spacing.xl,
         backgroundColor: theme.colors.surface,
         overflow: 'hidden',
+        borderRadius: theme.borderRadius.lg,
+        padding: 0,
     },
     spaceImage: {
-        width: 120,
-        height: 120,
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 240,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
     },
     spaceImagePlaceholder: {
-        width: 120,
-        height: 120,
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 240,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
         backgroundColor: theme.colors.background,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: theme.borderRadius.md,
     },
     spaceDetails: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.lg,
+    },
+    spaceHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.md,
+    },
+    spaceTextContainer: {
         flex: 1,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
+        marginRight: theme.spacing.md,
     },
     spaceName: {
         ...theme.typography.subheader,
@@ -534,33 +624,42 @@ const styles = StyleSheet.create({
         padding: theme.spacing.lg,
     },
     spaceListItem: {
-        marginBottom: theme.spacing.md,
-        flexDirection: 'row',
-        alignItems: 'flex-start',
+        marginBottom: theme.spacing.lg,
+        flexDirection: 'column',
+        alignItems: 'stretch',
         overflow: 'hidden',
+        borderRadius: theme.borderRadius.lg,
+        padding: 0,
     },
     spaceListImage: {
-        width: 100,
-        height: 100,
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 180,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
     },
     spaceListImagePlaceholder: {
-        width: 100,
-        height: 100,
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 180,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
         backgroundColor: theme.colors.background,
         alignItems: 'center',
         justifyContent: 'center',
     },
     spaceListContent: {
+        flexDirection: 'column',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+        flex: 1,
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.lg,
+    },
+    spaceListHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        flex: 1,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
+        width: '100%',
+        marginBottom: theme.spacing.sm,
     },
     spaceListName: {
         ...theme.typography.subheader,
@@ -595,11 +694,11 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 6,
+        marginTop: theme.spacing.xs,
     },
     selectedSpaceDetail: {
         backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.md,
-        padding: theme.spacing.lg,
+        borderRadius: theme.borderRadius.lg,
         marginBottom: theme.spacing.xl,
         alignItems: 'center',
         shadowColor: "#000",
@@ -607,39 +706,44 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+        overflow: 'hidden',
     },
     detailImage: {
         width: '100%',
-        height: 200,
-        borderRadius: theme.borderRadius.md,
-        marginBottom: theme.spacing.md,
+        height: 240,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
     },
     detailImagePlaceholder: {
         width: '100%',
-        height: 200,
-        borderRadius: theme.borderRadius.md,
+        height: 240,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
         backgroundColor: theme.colors.background,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: theme.spacing.md,
     },
     detailName: {
         ...theme.typography.header,
         fontSize: 22,
         marginBottom: theme.spacing.xs,
         textAlign: 'center',
+        marginTop: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.lg,
     },
     detailType: {
         ...theme.typography.subheader,
         color: theme.colors.primary,
         marginBottom: theme.spacing.md,
         textAlign: 'center',
+        paddingHorizontal: theme.spacing.lg,
     },
     detailInfoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: theme.spacing.sm,
         width: '100%',
+        paddingHorizontal: theme.spacing.lg,
     },
     detailInfoText: {
         ...theme.typography.body,
@@ -649,8 +753,10 @@ const styles = StyleSheet.create({
     detailDescription: {
         ...theme.typography.body,
         marginTop: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
         textAlign: 'center',
         fontStyle: 'italic',
+        paddingHorizontal: theme.spacing.lg,
     },
     submenuTitle: {
         ...theme.typography.subheader,
@@ -658,5 +764,35 @@ const styles = StyleSheet.create({
         color: theme.colors.secondary,
         marginBottom: theme.spacing.md,
         marginTop: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.lg,
+    },
+    // Estilos para la galería
+    galleryContainer: {
+        marginTop: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
+    },
+    galleryTitle: {
+        ...theme.typography.subheader,
+        fontSize: 16,
+        fontWeight: '600',
+        color: theme.colors.text.primary,
+        marginBottom: theme.spacing.md,
+        marginLeft: theme.spacing.lg,
+    },
+    galleryItem: {
+        marginHorizontal: theme.spacing.md,
+        borderRadius: theme.borderRadius.lg,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    galleryImage: {
+        width: 280,
+        height: 180,
+        resizeMode: 'cover',
+        borderRadius: theme.borderRadius.lg,
     },
 });

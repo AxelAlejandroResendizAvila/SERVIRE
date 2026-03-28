@@ -91,14 +91,13 @@ const apiCall = async (endpoint, options = {}) => {
       const msg =
         (errorData && (errorData.error || errorData.message)) ||
         `HTTP Error: ${response.status}`;
-      throw new Error(`${msg} (url: ${url})`);
+      throw new Error(msg);
     }
 
     const data = await safeParseJson(response);
     return data;
   } catch (error) {
-    console.error(`Error en ${endpoint}:`, error);
-    throw new Error(`${error.message || error} (url: ${url})`);
+    throw error;
   }
 };
 

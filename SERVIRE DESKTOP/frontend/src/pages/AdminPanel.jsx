@@ -5,14 +5,68 @@ import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import { getAdminRequests, approveReservation, declineReservation } from '../services/api';
 
-const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
+// Función para parsear fechas UTC correctamente (igual que en móbil)
+const parseUTCDate = (isoString) => {
+    if (!isoString) return 0;
+    try {
+        // Si no tiene Z, agrégalo para que sea interpretado como UTC
+        const dateStr = isoString.includes('Z') ? isoString : isoString + 'Z';
+        return new Date(dateStr).getTime();
+    } catch (e) {
+        return 0;
+    }
+};
+
+// Función para construir fecha UTC desde date (YYYY-MM-DD) y time (HH:MM)
+const constructUTCDate = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return 0;
+    try {
+        const [year, month, day] = dateStr.split('-');
+        const [hours, minutes] = timeStr.split(':');
+        return Date.UTC(
+            parseInt(year, 10),
+            parseInt(month, 10) - 1,
+            parseInt(day, 10),
+            parseInt(hours, 10),
+            parseInt(minutes, 10)
+        );
+    } catch (e) {
+        return 0;
+    }
+};
+
+// Función para detectar si una reserva ya expiró
+const isReservationExpired = (endDateRaw, date, time) => {
+    let endTime = 0;
+    
+    if (date && time) {
+        const [, endTimeStr] = time.split(' - ');
+        endTime = constructUTCDate(date, endTimeStr);
+    } else {
+        endTime = parseUTCDate(endDateRaw);
+    }
+    
+    return new Date().getTime() >= endTime;
+};
+
+const CountdownTimer = ({ startDateRaw, endDateRaw, date, time }) => {
     const [status, setStatus] = useState('');
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
         const updateTimer = () => {
-            const start = new Date(startDateRaw).getTime();
-            const end = new Date(endDateRaw).getTime();
+            // Intentar usar date y time (más fiable) sino usar startDateRaw y endDateRaw
+            let start, end;
+            
+            if (date && time) {
+                const [startTimeStr, endTimeStr] = time.split(' - ');
+                start = constructUTCDate(date, startTimeStr);
+                end = constructUTCDate(date, endTimeStr);
+            } else {
+                start = parseUTCDate(startDateRaw);
+                end = parseUTCDate(endDateRaw);
+            }
+            
             const now = new Date().getTime();
 
             if (now < start) {
@@ -51,7 +105,7 @@ const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, [startDateRaw, endDateRaw]);
+    }, [startDateRaw, endDateRaw, date, time]);
 
     if (status === 'finished') {
         return <span className="inline-block mt-1 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">Terminado</span>;
@@ -70,6 +124,20 @@ const CountdownTimer = ({ startDateRaw, endDateRaw }) => {
             ▶ En curso: {timeLeft}
         </span>
     );
+};
+
+// Función para convertir tiempo UTC a hora local
+const formatLocalTime = (utcTimeString) => {
+    if (!utcTimeString) return '';
+    try {
+        const [hours, minutes] = utcTimeString.split(':');
+        const date = new Date();
+        date.setUTCHours(parseInt(hours, 10));
+        date.setUTCMinutes(parseInt(minutes, 10));
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    } catch (e) {
+        return utcTimeString;
+    }
 };
 
 const AdminPanel = () => {
@@ -137,9 +205,17 @@ const AdminPanel = () => {
 
     const filteredRequests = requests.filter(req => {
         let matchesTab = true;
-        if (activeTab === 'pending') matchesTab = req.status === 'pending';
-        else if (activeTab === 'approved') matchesTab = req.status === 'approved';
-        else if (activeTab === 'history') matchesTab = req.status === 'declined' || req.status === 'completed';
+        
+        if (activeTab === 'pending') {
+            matchesTab = req.status === 'pending';
+        } else if (activeTab === 'approved') {
+            // Las reservas 'approved' expiradas NO van en activas
+            matchesTab = req.status === 'approved' && !isReservationExpired(req.endDateRaw, req.date, req.time);
+        } else if (activeTab === 'history') {
+            // El historial incluye declined, completed, y approved expiradas
+            matchesTab = req.status === 'declined' || req.status === 'completed' || 
+                        (req.status === 'approved' && isReservationExpired(req.endDateRaw, req.date, req.time));
+        }
 
         const str = `${req.requester} ${req.requesterEmail} ${req.space} ${req.date} ${req.time} ${req.status} ${req.motivo_rechazo || ''}`.toLowerCase();
         const matchesSearch = str.includes(searchQuery.toLowerCase());
@@ -148,7 +224,7 @@ const AdminPanel = () => {
     });
 
     const pendingCount = requests.filter(r => r.status === 'pending').length;
-    const approvedCount = requests.filter(r => r.status === 'approved').length;
+    const approvedCount = requests.filter(r => r.status === 'approved' && !isReservationExpired(r.endDateRaw, r.date, r.time)).length;
 
     const tabs = [
         { key: 'pending', label: 'Pendientes', count: pendingCount },
@@ -248,21 +324,36 @@ const AdminPanel = () => {
                                         <td className="py-4 px-6 text-gray-700 font-medium">{req.space}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">{req.date}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">
-                                            <div>{req.time}</div>
-                                            {req.status === 'approved' && req.startDateRaw && req.endDateRaw && (
-                                                <CountdownTimer startDateRaw={req.startDateRaw} endDateRaw={req.endDateRaw} />
+                                            <div>
+                                                {formatLocalTime(req.time.split(' - ')[0])} - {formatLocalTime(req.time.split(' - ')[1])}
+                                            </div>
+                                            {req.status === 'approved' && req.date && req.time && !isReservationExpired(req.endDateRaw, req.date, req.time) && (
+                                                <CountdownTimer startDateRaw={req.startDateRaw} endDateRaw={req.endDateRaw} date={req.date} time={req.time} />
                                             )}
                                         </td>
                                         <td className="py-4 px-6">
-                                            <Badge
-                                                status={req.status === 'completed' ? 'approved' : req.status === 'declined' ? 'ocupado' : req.status}
-                                                label={
+                                            {(() => {
+                                                const isExpired = isReservationExpired(req.endDateRaw, req.date, req.time);
+                                                const statusLabel = 
                                                     req.status === 'pending' ? 'Pendiente' :
-                                                        req.status === 'approved' ? 'Activa' :
-                                                            req.status === 'completed' ? 'Completada' :
-                                                                'Rechazada'
-                                                }
-                                            />
+                                                    req.status === 'approved' && isExpired ? 'Terminada' :
+                                                    req.status === 'approved' ? 'Activa' :
+                                                    req.status === 'completed' ? 'Terminada' :
+                                                    'Rechazada';
+                                                
+                                                // Color del badge: gris para terminadas, rojo para rechazadas
+                                                const statusType = 
+                                                    isExpired || req.status === 'completed' ? 'declined' :
+                                                    req.status === 'declined' ? 'declined' : 
+                                                    req.status;
+                                                
+                                                return (
+                                                    <Badge
+                                                        status={statusType}
+                                                        label={statusLabel}
+                                                    />
+                                                );
+                                            })()}
                                             {req.status === 'declined' && req.motivo_rechazo && (
                                                 <div className="mt-2 text-xs text-red-600 bg-red-50 p-1.5 rounded flex items-start max-w-[200px]">
                                                     <AlertTriangle size={12} className="mr-1 mt-0.5 shrink-0" />
@@ -290,7 +381,7 @@ const AdminPanel = () => {
                                                         )}
                                                     </Button>
                                                 )}
-                                                {(req.status === 'pending' || req.status === 'approved') && (
+                                                {(req.status === 'pending' || (req.status === 'approved' && !isReservationExpired(req.endDateRaw, req.date, req.time))) && (
                                                     <Button
                                                         variant="danger"
                                                         size="sm"

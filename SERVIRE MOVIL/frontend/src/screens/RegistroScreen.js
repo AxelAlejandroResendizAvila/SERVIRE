@@ -55,7 +55,6 @@ export default function RegistroScreen({ navigation }) {
                 setError('Error en la respuesta del servidor');
             }
         } catch (err) {
-            console.error('Error en registro:', err);
             setError(err.message || 'Error al registrarse');
             Alert.alert('Error', err.message || 'Error al registrarse');
         } finally {

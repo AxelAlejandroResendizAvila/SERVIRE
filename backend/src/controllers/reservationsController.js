@@ -12,6 +12,22 @@ export const createReservation = async (req, res) => {
 
         const start = fecha_inicio || new Date().toISOString();
         const end = fecha_fin || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+        const now = new Date();
+
+        // Validar que la fecha de inicio no sea en el pasado
+        if (new Date(start) < now) {
+            return res.status(400).json({ error: 'No puedes hacer reservas en fechas pasadas' });
+        }
+
+        // Validar que la fecha de fin no sea en el pasado
+        if (new Date(end) < now) {
+            return res.status(400).json({ error: 'La fecha de término no puede ser en el pasado' });
+        }
+
+        // Validar que inicio sea antes que fin
+        if (new Date(start) >= new Date(end)) {
+            return res.status(400).json({ error: 'La hora de inicio debe ser anterior a la de fin' });
+        }
 
         // Validar que no haya conflictos de horarios para el mismo espacio (reservas pendientes y confirmadas)
         const conflictQuery = `
@@ -251,6 +267,60 @@ export const declineReservation = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al rechazar la reserva' });
+    }
+};
+
+export const cancelUserReservation = async (req, res) => {
+    const { id } = req.params;
+    const id_usuario = req.usuario;
+
+    try {
+        // Obtener la reserva
+        const reservaResult = await pool.query('SELECT * FROM reservas WHERE id_reserva = $1', [id]);
+        if (reservaResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Reserva no encontrada' });
+        }
+
+        const reserva = reservaResult.rows[0];
+
+        // Validar que pertenezca al usuario
+        if (reserva.id_usuario !== id_usuario) {
+            return res.status(403).json({ error: 'No tienes permiso para cancelar esta reserva' });
+        }
+        // Permitir eliminación según el estado actual
+        if (reserva.estado === 'pendiente') {
+            // Pendiente: cambiar a cancelada
+            console.log(`  → Cambiando a cancelada`);
+            await pool.query(
+                "UPDATE reservas SET estado = 'cancelada' WHERE id_reserva = $1",
+                [id]
+            );
+            res.json({ success: true, message: 'Reserva cancelada exitosamente' });
+        } 
+        else if (reserva.estado === 'completada' || reserva.estado === 'cancelada') {
+            // Completada/cancelada: eliminar del historial
+            await pool.query("DELETE FROM reservas WHERE id_reserva = $1", [id]);
+            res.json({ success: true, message: 'Reserva eliminada del historial' });
+        } 
+        else if (reserva.estado === 'confirmada') {
+            // Confirmada: si está siendo eliminada desde el historial, es porque ya pasó
+            // Primero intenta marcarla como completada
+            await pool.query(
+                "UPDATE reservas SET estado = 'completada' WHERE id_reserva = $1",
+                [id]
+            );
+            await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [reserva.id_espacio]);
+            
+            // Ahora eliminarla del historial
+            await pool.query("DELETE FROM reservas WHERE id_reserva = $1", [id]);
+            res.json({ success: true, message: 'Reserva eliminada del historial' });
+        } 
+        else {
+            return res.status(400).json({ error: `No se puede cancelar una reserva en estado ${reserva.estado}` });
+        }
+    } catch (error) {
+        console.error('❌ Error cancelando reserva:', error);
+        res.status(500).json({ error: 'Error al cancelar la reserva' });
     }
 };
 

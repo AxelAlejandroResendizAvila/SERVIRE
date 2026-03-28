@@ -7,6 +7,112 @@ import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { getMyReservations, cancelReservation } from '../services/api';
 
+const isReservationPast = (date, time) => {
+    if (!date || !time) return false;
+    try {
+        const timeParts = time.split(' - ');
+        if (timeParts.length < 2) return false;
+        const endTimeStr = timeParts[1];
+        const [endHrs, endMins] = endTimeStr.split(':');
+        const [year, month, day] = date.split('-');
+        
+        const endMs = Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), parseInt(endHrs, 10), parseInt(endMins, 10));
+        return new Date().getTime() >= endMs;
+    } catch (e) {
+        return false;
+    }
+};
+
+const CountdownTimer = ({ date, time }) => {
+    const [status, setStatus] = useState('');
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        const updateTimer = () => {
+            if (!date || !time) return;
+            
+            try {
+                const [startTimeStr, endTimeStr] = time.split(' - ');
+                const [startHrs, startMins] = startTimeStr.split(':');
+                const [endHrs, endMins] = endTimeStr.split(':');
+                const [year, month, day] = date.split('-');
+
+                const startMs = Date.UTC(
+                    parseInt(year, 10), 
+                    parseInt(month, 10) - 1, 
+                    parseInt(day, 10), 
+                    parseInt(startHrs, 10), 
+                    parseInt(startMins, 10)
+                );
+
+                const endMs = Date.UTC(
+                    parseInt(year, 10), 
+                    parseInt(month, 10) - 1, 
+                    parseInt(day, 10), 
+                    parseInt(endHrs, 10), 
+                    parseInt(endMins, 10)
+                );
+
+                const now = new Date().getTime();
+
+                if (now < startMs) {
+                    setStatus('pending');
+                    const distance = startMs - now;
+                    const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    let timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    if (d > 0) {
+                        timeStr = `${d}d ${timeStr}`;
+                    }
+
+                    setTimeLeft(`Falta ${timeStr} para que empiece tu turno`);
+                    return;
+                }
+
+                if (now >= startMs && now < endMs) {
+                    setStatus('active');
+                    const distance = endMs - now;
+                    const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    setTimeLeft(`Te falta ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')} para terminar`);
+                    return;
+                }
+
+                setStatus('finished');
+            } catch (error) {
+                console.error('Error calculando tiempo restante:', error);
+            }
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [date, time]);
+
+    if (!status || status === 'finished') return null;
+
+    return (
+        <View style={styles.countdownContainer}>
+            <Ionicons 
+                name={status === 'active' ? "time" : "hourglass-outline"} 
+                size={14} 
+                color={status === 'active' ? theme.colors.status.success : theme.colors.primary} 
+            />
+            <Text style={[
+                styles.countdownText,
+                status === 'active' ? { color: theme.colors.status.success } : { color: theme.colors.primary }
+            ]}>
+                {timeLeft}
+            </Text>
+        </View>
+    );
+};
+
 export default function MisReservas({ navigation, route }) {
     const [activeTab, setActiveTab] = useState('pending');
     const [reservations, setReservations] = useState([]);
@@ -16,10 +122,20 @@ export default function MisReservas({ navigation, route }) {
 
     useEffect(() => {
         fetchReservations();
+        
+        // Auto-refresh cada 30 segundos para detectar reservas terminadas
+        const autoRefreshInterval = setInterval(() => {
+            fetchReservations();
+        }, 30 * 1000);
+
         const unsubscribe = navigation.addListener('focus', () => {
             fetchReservations();
         });
-        return unsubscribe;
+
+        return () => {
+            clearInterval(autoRefreshInterval);
+            unsubscribe();
+        };
     }, [navigation]);
 
     const fetchReservations = async () => {
@@ -69,28 +185,95 @@ export default function MisReservas({ navigation, route }) {
         );
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'approved': return theme.colors.status.success;
-            case 'pending': return theme.colors.status.warning;
-            case 'waitlisted': return theme.colors.status.warning;
-            case 'declined': return theme.colors.status.error;
-            default: return theme.colors.text.secondary;
-        }
+    const handleDeleteHistory = (id) => {
+        Alert.alert(
+            'Eliminar del historial',
+            '¿Seguro que quieres eliminar este registro de tu historial?',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Eliminar',
+                    onPress: async () => {
+                        setCanceling(id);
+                        try {
+                            await cancelReservation(id);
+                            Alert.alert('Éxito', 'Reserva eliminada del historial');
+                            fetchReservations();
+                        } catch (error) {
+                            Alert.alert('Error', error.message || 'Error al eliminar la reserva');
+                        } finally {
+                            setCanceling(null);
+                        }
+                    },
+                    style: 'destructive',
+                }
+            ]
+        );
     };
 
-    const getStatusLabel = (status) => {
-        switch (status) {
+    const getStatusColor = (reservation) => {
+        const isPast = isReservationPast(reservation.date, reservation.time);
+        
+        // Reservas terminadas = gris (independiente si es completed o approved + past)
+        if (reservation.status === 'completed') return theme.colors.text.secondary;
+        if (isPast && reservation.status === 'approved') return theme.colors.text.secondary;
+        
+        // Si está rechazada, rojo
+        if (reservation.status === 'declined') return theme.colors.status.error;
+        
+        // Si pasó su tiempo pero es pending/waitlisted = gris (expirada)
+        if (isPast) return theme.colors.text.secondary;
+
+        // Estados activos normales
+        if (reservation.status === 'approved') return theme.colors.status.success; // Verde = confirmada activa
+        if (reservation.status === 'pending' || reservation.status === 'waitlisted') return theme.colors.status.warning; // Amarillo = pendiente/fila
+        
+        return theme.colors.text.secondary; // Default
+    };
+
+    const getStatusLabel = (reservation) => {
+        const isPast = isReservationPast(reservation.date, reservation.time);
+        
+        // Si el backend dice que está 'completed', siempre mostrar 'Terminada'
+        if (reservation.status === 'completed') return 'Terminada';
+        
+        // Si pasó su tiempo pero el backend aún dice 'approved', también es terminada
+        if (reservation.status === 'approved' && isPast) return 'Terminada';
+        
+        // Si pasó su tiempo pero el backend aún dice 'pending'
+        if (reservation.status === 'pending' && isPast) return 'Expirada';
+        if (reservation.status === 'waitlisted' && isPast) return 'Expirada';
+        
+        // Estados normales
+        switch (reservation.status) {
             case 'approved': return 'Confirmada';
             case 'pending': return 'Pendiente';
             case 'waitlisted': return 'En fila';
             case 'declined': return 'Cancelada';
-            default: return status;
+            default: return reservation.status;
         }
     };
 
-    const pendingReservations = reservations.filter(r => ['pending', 'waitlisted', 'approved'].includes(r.status));
-    const pastReservations = reservations.filter(r => r.status === 'declined');
+    const pendingReservations = reservations.filter(r => {
+        // Nunca mostrar completed/declined en activas
+        if (r.status === 'completed' || r.status === 'declined') return false;
+        
+        // Excluir reservas que ya pasaron
+        if (isReservationPast(r.date, r.time)) return false;
+        
+        // Mostrar pending, waitlisted, approved que aún no pasan
+        return ['pending', 'waitlisted', 'approved'].includes(r.status);
+    });
+    
+    const pastReservations = reservations.filter(r => {
+        // Mostrar completed y declined siempre
+        if (r.status === 'completed' || r.status === 'declined') return true;
+        
+        // Mostrar approved/pending/waitlisted que ya pasaron (terminadas/expiradas)
+        if (isReservationPast(r.date, r.time)) return true;
+        
+        return false;
+    });
 
     const formatLocalTime = (utcTimeString) => {
         if (!utcTimeString) return '';
@@ -166,6 +349,10 @@ export default function MisReservas({ navigation, route }) {
                                         <Text style={styles.timeValue}>{formatLocalTime(reservation.time.split(' - ')[1])}</Text>
                                     </View>
                                 </View>
+
+                                {reservation.status === 'approved' && !isReservationPast(reservation.date, reservation.time) && (
+                                    <CountdownTimer date={reservation.date} time={reservation.time} />
+                                )}
                             </View>
 
                             {/* Detalles de la reserva */}
@@ -179,11 +366,11 @@ export default function MisReservas({ navigation, route }) {
 
                                     <View style={[
                                         styles.statusPill,
-                                        { borderColor: getStatusColor(reservation.status), backgroundColor: getStatusColor(reservation.status) + '15' }
+                                        { borderColor: getStatusColor(reservation), backgroundColor: getStatusColor(reservation) + '15' }
                                     ]}>
-                                        <View style={[styles.statusDot, { backgroundColor: getStatusColor(reservation.status) }]} />
-                                        <Text style={[styles.statusText, { color: getStatusColor(reservation.status) }]}>
-                                            {getStatusLabel(reservation.status)}
+                                        <View style={[styles.statusDot, { backgroundColor: getStatusColor(reservation) }]} />
+                                        <Text style={[styles.statusText, { color: getStatusColor(reservation) }]}>
+                                            {getStatusLabel(reservation)}
                                         </Text>
                                     </View>
                                 </View>
@@ -200,7 +387,7 @@ export default function MisReservas({ navigation, route }) {
                                     <View style={styles.bookingReasonContainer}>
                                         <Ionicons name="bookmark-outline" size={14} color={theme.colors.text.secondary} />
                                         <Text style={styles.bookingReasonText} numberOfLines={3}>
-                                            <Text style={{fontWeight: '600'}}>Motivo: </Text>{reservation.motivo}
+                                            <Text style={{ fontWeight: '600' }}>Motivo: </Text>{reservation.motivo}
                                         </Text>
                                     </View>
                                 )}
@@ -210,7 +397,7 @@ export default function MisReservas({ navigation, route }) {
                                     <View style={styles.reasonContainer}>
                                         <Ionicons name="information-circle-outline" size={16} color={theme.colors.error} />
                                         <Text style={styles.reasonText} numberOfLines={3}>
-                                            <Text style={{fontWeight: '600'}}>Motivo rechazo: </Text>{reservation.motivo_rechazo}
+                                            <Text style={{ fontWeight: '600' }}>Motivo rechazo: </Text>{reservation.motivo_rechazo}
                                         </Text>
                                     </View>
                                 )}
@@ -218,7 +405,7 @@ export default function MisReservas({ navigation, route }) {
                         </View>
 
                         {/* Botones de acción - solo si está pendiente */}
-                        {reservation.status === 'pending' && (
+                        {reservation.status === 'pending' && !isReservationPast(reservation.date, reservation.time) && (
                             <View style={styles.actionsContainer}>
                                 <TouchableOpacity
                                     style={styles.editButton}
@@ -242,6 +429,26 @@ export default function MisReservas({ navigation, route }) {
                                     )}
                                     <Text style={styles.cancelButtonText}>
                                         {canceling === reservation.id ? 'Cancelando...' : 'Cancelar'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Botones de acción - Historial */}
+                        {(reservation.status === 'declined' || isReservationPast(reservation.date, reservation.time)) && (
+                            <View style={styles.actionsContainer}>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => handleDeleteHistory(reservation.id)}
+                                    disabled={canceling === reservation.id}
+                                >
+                                    {canceling === reservation.id ? (
+                                        <ActivityIndicator size="small" color={theme.colors.error} />
+                                    ) : (
+                                        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                                    )}
+                                    <Text style={styles.cancelButtonText}>
+                                        {canceling === reservation.id ? 'Eliminando...' : 'Eliminar del historial'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -473,15 +680,16 @@ const styles = StyleSheet.create({
     timeSection: {
         backgroundColor: theme.colors.primary + '08',
         borderRadius: theme.borderRadius.md,
-        padding: theme.spacing.md,
+        padding: theme.spacing.sm,
         borderWidth: 1,
         borderColor: theme.colors.primary + '15',
     },
     timeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: theme.spacing.md,
+        justifyContent: 'space-around',
+        flexWrap: 'wrap',
+        gap: theme.spacing.sm,
     },
     timeBlock: {
         alignItems: 'center',
@@ -502,25 +710,44 @@ const styles = StyleSheet.create({
     timeDivider: {
         paddingHorizontal: theme.spacing.sm,
     },
+    countdownContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: theme.spacing.sm,
+        paddingTop: theme.spacing.sm,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.primary + '20',
+        gap: theme.spacing.xs,
+    },
+    countdownText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
     detailsContainer: {
         flex: 1,
     },
     dateAndStatusContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         marginBottom: theme.spacing.sm,
+        flexWrap: 'wrap',
+        gap: theme.spacing.sm,
     },
     dateHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.sm,
+        flex: 1,
     },
     dateText: {
         ...theme.typography.body,
         fontWeight: '600',
         color: theme.colors.text.primary,
         textTransform: 'capitalize',
+        flexShrink: 1,
     },
     infoRow: {
         flexDirection: 'row',
@@ -540,6 +767,7 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: theme.borderRadius.full,
         gap: 6,
+        flexShrink: 0,
     },
     statusDot: {
         width: 6,

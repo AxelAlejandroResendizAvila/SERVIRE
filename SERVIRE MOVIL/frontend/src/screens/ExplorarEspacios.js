@@ -162,27 +162,35 @@ export default function ExplorarEspacios({ navigation }) {
                                         <Image
                                             source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
                                             style={styles.spaceImage}
+                                            resizeMode="cover"
                                         />
                                     ) : (
                                         <View style={styles.spaceIconContainer}>
                                             <Ionicons 
                                                 name={getTypeIcon(space.type)} 
-                                                size={32} 
+                                                size={50} 
                                                 color={theme.colors.primary} 
                                             />
                                         </View>
                                     )}
                                     <View style={styles.spaceInfo}>
-                                        <Text style={styles.spaceName}>{space.name}</Text>
-                                        <Text style={styles.spaceType}>{space.type} • {space.location}</Text>
+                                        <View style={styles.spaceInfoHeader}>
+                                            <View style={styles.spaceInfoText}>
+                                                <Text style={styles.spaceName}>{space.name}</Text>
+                                                <Text style={styles.spaceType}>{space.type}</Text>
+                                            </View>
+                                            <View style={[
+                                                styles.statusDot,
+                                                { backgroundColor: space.state === 'disponible' ? theme.colors.status.success : theme.colors.status.warning }
+                                            ]} />
+                                        </View>
+                                        <Text style={styles.spaceLocation}>
+                                            📍 {space.location}
+                                        </Text>
                                         <Text style={styles.spaceCapacity}>
-                                            Capacidad: {space.capacity} personas
+                                            👥 Capacidad: {space.capacity} personas
                                         </Text>
                                     </View>
-                                    <View style={[
-                                        styles.statusDot,
-                                        { backgroundColor: space.state === 'disponible' ? theme.colors.status.success : theme.colors.status.warning }
-                                    ]} />
                                 </Card>
                             </TouchableOpacity>
                         ))}
@@ -283,51 +291,68 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     spaceCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
         overflow: 'hidden',
+        marginBottom: theme.spacing.lg,
+        borderRadius: theme.borderRadius.lg,
+        padding: 0,
     },
     spaceImage: {
-        width: 100,
-        height: 100,
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 200,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
     },
     spaceIconContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: theme.borderRadius.md,
+        width: '100%',
+        height: 200,
+        borderTopLeftRadius: theme.borderRadius.lg,
+        borderTopRightRadius: theme.borderRadius.lg,
         backgroundColor: theme.colors.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderTopLeftRadius: theme.borderRadius.md,
-        borderBottomLeftRadius: theme.borderRadius.md,
     },
     spaceInfo: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.lg,
+    },
+    spaceInfoHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        marginBottom: theme.spacing.md,
+    },
+    spaceInfoText: {
         flex: 1,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
+        marginRight: theme.spacing.md,
     },
     spaceName: {
         ...theme.typography.subheader,
-        fontSize: 16,
+        fontSize: 18,
+        marginBottom: theme.spacing.xs,
     },
     spaceType: {
         ...theme.typography.caption,
-        marginTop: 2,
         color: theme.colors.text.secondary,
+        marginBottom: theme.spacing.xs,
+    },
+    spaceLocation: {
+        ...theme.typography.caption,
+        fontSize: 13,
+        color: theme.colors.text.secondary,
+        marginBottom: theme.spacing.xs,
     },
     spaceCapacity: {
         ...theme.typography.caption,
-        marginTop: 2,
-        fontSize: 12,
+        fontSize: 13,
         color: theme.colors.text.secondary,
     },
     statusDot: {
         width: 12,
         height: 12,
         borderRadius: 6,
-        marginLeft: theme.spacing.md,
+        marginTop: theme.spacing.xs,
     },
     emptyText: {
         ...theme.typography.body,

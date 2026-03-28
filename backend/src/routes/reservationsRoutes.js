@@ -4,11 +4,15 @@ import * as reservationsController from '../controllers/reservationsController.j
 
 const router = express.Router();
 
-router.post('/', authMiddleware, reservationsController.createReservation);
+// Rutas específicas primero
 router.get('/mis-reservas', authMiddleware, reservationsController.getMyReservations);
 router.get('/admin', reservationsController.getAdminRequests);
+
+// Rutas con parámetro :id
+router.post('/', authMiddleware, reservationsController.createReservation);
 router.put('/:id/aprobar', authMiddleware, reservationsController.approveReservation);
 router.put('/:id/rechazar', authMiddleware, reservationsController.declineReservation);
+router.delete('/:id', authMiddleware, reservationsController.cancelUserReservation);
 router.put('/liberar/:spaceId', authMiddleware, reservationsController.freeSpace);
 
 export default router;

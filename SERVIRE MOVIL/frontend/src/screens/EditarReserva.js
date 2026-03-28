@@ -49,9 +49,14 @@ export default function EditarReserva({ navigation, route }) {
 
     const calculateDuration = () => {
         if (!startTime || !endTime) return 0;
-        const [startHour] = startTime.split(':').map(Number);
-        const [endHour] = endTime.split(':').map(Number);
-        return Math.abs(endHour - startHour) || 0;
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        if (isNaN(startHour) || isNaN(endHour)) return 0;
+        
+        const startTotal = startHour + ((startMin || 0) / 60);
+        const endTotal = endHour + ((endMin || 0) / 60);
+        const diffHrs = endTotal - startTotal;
+        return diffHrs > 0 ? diffHrs.toFixed(1) : 0;
     };
 
     const handleSave = async () => {
@@ -64,7 +69,15 @@ export default function EditarReserva({ navigation, route }) {
         const [startHour, startMin] = startTime.split(':').map(Number);
         const [endHour, endMin] = endTime.split(':').map(Number);
 
-        if (startHour >= endHour) {
+        if (isNaN(startHour) || isNaN(endHour)) {
+            Alert.alert('Error', 'Formato de hora incorrecto');
+            return;
+        }
+
+        const startTotalMin = startHour * 60 + (startMin || 0);
+        const endTotalMin = endHour * 60 + (endMin || 0);
+
+        if (endTotalMin <= startTotalMin) {
             Alert.alert('Error', 'La hora de fin debe ser posterior a la de inicio');
             return;
         }

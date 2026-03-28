@@ -30,7 +30,10 @@ export const AuthProvider = ({ children }) => {
           setUser(response.data.usuario);
         }
       } catch (error) {
-        console.error('Error verificando autenticación:', error);
+        // Silenciar error de verificación de token (esperado si no hay token)
+        if (error.response?.status !== 401) {
+          console.log('No autenticado');
+        }
         await removeToken();
       } finally {
         setLoading(false);
@@ -56,7 +59,24 @@ export const AuthProvider = ({ children }) => {
       setUser(usuario);
       return response.data;
     } catch (error) {
-      throw error;
+      let errorMessage = 'Error al iniciar sesión';
+      
+      if (error.response) {
+        // El servidor respondió con un código de estado fuera del rango 2xx
+        if (error.response.status === 401) {
+          errorMessage = 'Correo o contraseña incorrectos';
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data?.message || 'Datos inválidos';
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        // La solicitud fue hecha pero no se recibió respuesta
+        errorMessage = 'No se pudo conectar con el servidor';
+      }
+      
+      const customError = new Error(errorMessage);
+      throw customError;
     } finally {
       setLoading(false);
     }
@@ -81,7 +101,22 @@ export const AuthProvider = ({ children }) => {
       setUser(usuario);
       return response.data;
     } catch (error) {
-      throw error;
+      let errorMessage = 'Error al registrarse';
+      
+      if (error.response) {
+        if (error.response.status === 400) {
+          errorMessage = error.response.data?.message || 'Datos inválidos. Verifica que el correo no esté registrado';
+        } else if (error.response.status === 409) {
+          errorMessage = 'Este correo ya está registrado';
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = 'No se pudo conectar con el servidor';
+      }
+      
+      const customError = new Error(errorMessage);
+      throw customError;
     } finally {
       setLoading(false);
     }
@@ -92,7 +127,7 @@ export const AuthProvider = ({ children }) => {
       await removeToken();
       setUser(null);
     } catch (error) {
-      console.error('Error en logout:', error);
+      // Error silenciado
     }
   };
 

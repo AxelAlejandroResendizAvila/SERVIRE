@@ -59,7 +59,7 @@ export default function InicioAPP({ navigation }) {
                                 <Ionicons name="calendar" size={28} color={theme.colors.primary} />
                             </View>
                             <View style={styles.summaryTextContainer}>
-                                <Text style={styles.summaryTitle}>Mis espacios</Text>
+                                <Text style={styles.summaryTitle}>Espacios disponibles</Text>
                                 <Text style={styles.summarySubtitle}>
                                     Tuviste {totalReservations} {totalReservations === 1 ? 'reserva registrada' : 'reservas registradas'}
                                 </Text>

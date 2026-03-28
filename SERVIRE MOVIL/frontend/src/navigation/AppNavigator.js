@@ -52,7 +52,7 @@ function MainTabs() {
                 headerShown: false,
             })}
         >
-            <Tab.Screen name="Inicio" component={InicioAPP} options={{ tabBarStyle: { display: 'none' } }}/>
+            <Tab.Screen name="Inicio" component={InicioAPP} />
             <Tab.Screen name="Explorar" component={ExplorarEspacios} />
             <Tab.Screen name="Reservas" component={MisReservas} />
             <Tab.Screen name="Cuenta" component={Cuenta} />

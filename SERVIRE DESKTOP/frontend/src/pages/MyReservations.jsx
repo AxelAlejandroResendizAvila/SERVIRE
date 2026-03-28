@@ -35,6 +35,20 @@ const QueuePosition = ({ position, total }) => {
     );
 };
 
+// Función para convertir tiempo UTC a hora local
+const formatLocalTime = (utcTimeString) => {
+    if (!utcTimeString) return '';
+    try {
+        const [hours, minutes] = utcTimeString.split(':');
+        const date = new Date();
+        date.setUTCHours(parseInt(hours, 10));
+        date.setUTCMinutes(parseInt(minutes, 10));
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    } catch (e) {
+        return utcTimeString;
+    }
+};
+
 const MyReservations = () => {
     const [reservations, setReservations] = useState([]);
     const [spacesData, setSpacesData] = useState({});
@@ -64,6 +78,11 @@ const MyReservations = () => {
         };
 
         fetchData();
+        
+        // Auto-refresh cada 30 segundos para detectar cambios de estado
+        const autoRefreshInterval = setInterval(fetchData, 30 * 1000);
+        
+        return () => clearInterval(autoRefreshInterval);
     }, []);
 
     return (
@@ -91,6 +110,18 @@ const MyReservations = () => {
                         const spaceInfo = spacesData[res.spaceId];
                         if (!spaceInfo) return null;
 
+                        // Función helper para obtener el label correcto
+                        const getStatusLabel = () => {
+                            switch (res.status) {
+                                case 'approved': return 'Confirmada';
+                                case 'completed': return 'Terminada';
+                                case 'waitlisted': return 'En fila';
+                                case 'pending': return 'Pendiente';
+                                case 'declined': return 'Cancelada';
+                                default: return res.status;
+                            }
+                        };
+
                         return (
                             <Card key={res.id} className="p-0 overflow-hidden">
                                 <div className="flex flex-col md:flex-row border-l-4 border-l-primary">
@@ -101,7 +132,7 @@ const MyReservations = () => {
                                             </h3>
                                             <Badge
                                                 status={res.status}
-                                                label={res.status === 'approved' ? 'Aprobada' : 'En cola'}
+                                                label={getStatusLabel()}
                                             />
                                         </div>
 
@@ -112,7 +143,9 @@ const MyReservations = () => {
                                             </div>
                                             <div className="flex items-center w-full sm:w-1/2">
                                                 <Clock size={16} className="mr-2 text-primary/70" />
-                                                <span>{res.time}</span>
+                                                <span>
+                                                    {formatLocalTime(res.time.split(' - ')[0])} - {formatLocalTime(res.time.split(' - ')[1])}
+                                                </span>
                                             </div>
                                             <div className="flex items-center w-full sm:w-1/2">
                                                 <MapPin size={16} className="mr-2 text-primary/70" />

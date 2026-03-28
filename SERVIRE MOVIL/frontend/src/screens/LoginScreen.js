@@ -41,7 +41,6 @@ export default function LoginScreen({ navigation }) {
                 setError('Error en la respuesta del servidor');
             }
         } catch (err) {
-            console.error('Error en login:', err);
             setError(err.message || 'Error al iniciar sesión');
             Alert.alert('Error', err.message || 'Error al iniciar sesión');
         } finally {

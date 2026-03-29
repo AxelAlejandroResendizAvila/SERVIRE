@@ -11,9 +11,35 @@ import { updateReservation, getReservationById } from '../services/api';
 export default function EditarReserva({ navigation, route }) {
     const reservationId = route?.params?.id;
     const [reservation, setReservation] = useState(null);
-    const [date, setDate] = useState('');
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+    const convertTo12hFormat = (time24) => {
+        if (!time24) return '';
+        try {
+            const [hours, minutes] = time24.split(':').map(Number);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${ampm}`;
+        } catch (e) {
+            return time24;
+        }
+    };
+
+    const convertTo24hFormat = (time12) => {
+        if (!time12) return '';
+        try {
+            const regex = /(\d{2}):(\d{2})\s(AM|PM)/i;
+            const match = time12.match(regex);
+            if (match) {
+                let [, hours, minutes, ampm] = match;
+                hours = parseInt(hours, 10);
+                if (ampm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                if (ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                return `${String(hours).padStart(2, '0')}:${minutes}`;
+            }
+            return time12;
+        } catch (e) {
+            return time12;
+        }
+    };
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
 
@@ -170,10 +196,10 @@ export default function EditarReserva({ navigation, route }) {
                     <View style={styles.timeRow}>
                         <View style={styles.timeInput}>
                             <InputField
-                                label="Inicio (HH:MM)"
-                                placeholder="10:00"
-                                value={startTime}
-                                onChangeText={setStartTime}
+                                label="Inicio (HH:MM AM/PM)"
+                                placeholder="02:00 PM"
+                                value={convertTo12hFormat(startTime)}
+                                onChangeText={(val) => setStartTime(convertTo24hFormat(val))}
                                 icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
                                 editable={!updating}
                             />
@@ -181,10 +207,10 @@ export default function EditarReserva({ navigation, route }) {
                         <View style={styles.timeSpacer} />
                         <View style={styles.timeInput}>
                             <InputField
-                                label="Fin (HH:MM)"
-                                placeholder="12:00"
-                                value={endTime}
-                                onChangeText={setEndTime}
+                                label="Fin (HH:MM AM/PM)"
+                                placeholder="04:00 PM"
+                                value={convertTo12hFormat(endTime)}
+                                onChangeText={(val) => setEndTime(convertTo24hFormat(val))}
                                 icon={<Ionicons name="time-outline" size={20} color={theme.colors.text.secondary} />}
                                 editable={!updating}
                             />

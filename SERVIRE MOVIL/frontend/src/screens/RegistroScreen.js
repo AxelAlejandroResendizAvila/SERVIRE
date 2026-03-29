@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import { theme } from '../theme/theme';
 import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import LogoSVG from '../components/LogoSVG';
 
 export default function RegistroScreen({ navigation }) {
     const [nombre, setNombre] = useState('');
@@ -70,7 +71,7 @@ export default function RegistroScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Servire</Text>
+                    <LogoSVG size={80} />
                 </View>
 
                 <Text style={styles.title}>Crea una cuenta</Text>
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
     logoContainer: {
         alignItems: 'center',
         marginBottom: theme.spacing.xl,
+        justifyContent: 'center',
     },
     logoText: {
         fontSize: 40,

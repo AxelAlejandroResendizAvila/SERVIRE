@@ -31,13 +31,18 @@ export default function ExplorarEspacios({ navigation }) {
             
             try {
                 const res = await fetch(`${config.baseURL}/espacios/edificios`);
-                const edifs = await res.json();
-                setEdificios(edifs || []);
-            } catch(e) {}
+                if (res.ok) {
+                    const edifs = await res.json();
+                    setEdificios(edifs || []);
+                }
+            } catch(e) {
+                // Error al cargar edificios, no es crítico
+                console.warn('Error cargando edificios:', e);
+            }
         } catch (err) {
             console.error('Error fetching spaces:', err);
-            setError('Error al cargar los espacios');
-            Alert.alert('Error', 'No se pudieron cargar los espacios');
+            setError(err.message || 'Hubo un problema al cargar los espacios. Por favor, intenta de nuevo.');
+            setSpaces([]);
         } finally {
             setLoading(false);
         }

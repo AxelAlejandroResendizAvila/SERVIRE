@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
+import { useBadge } from '../context/BadgeContext';
 import { getMyReservations, cancelReservation } from '../services/api';
-
 const isReservationPast = (date, time) => {
     if (!date || !time) return false;
     try {
@@ -119,24 +120,20 @@ export default function MisReservas({ navigation, route }) {
     const [loading, setLoading] = useState(true);
     const [canceling, setCanceling] = useState(null);
     const [error, setError] = useState('');
+    const { clearBadge } = useBadge();
 
     useEffect(() => {
         fetchReservations();
         
-        // Auto-refresh cada 30 segundos para detectar reservas terminadas
+        // Auto-refresh cada 30 segundos
         const autoRefreshInterval = setInterval(() => {
             fetchReservations();
         }, 30 * 1000);
 
-        const unsubscribe = navigation.addListener('focus', () => {
-            fetchReservations();
-        });
-
         return () => {
             clearInterval(autoRefreshInterval);
-            unsubscribe();
         };
-    }, [navigation]);
+    }, []);
 
     const fetchReservations = async () => {
         try {
@@ -144,10 +141,18 @@ export default function MisReservas({ navigation, route }) {
             setError('');
             const data = await getMyReservations();
             setReservations(data || []);
+            
+            // Verificar si hay reservas con cambios (approved/declined)
+            if (data && data.length > 0) {
+                const hasChanges = data.some(res => res.status === 'approved' || res.status === 'declined');
+                if (hasChanges) {
+                    await AsyncStorage.setItem('reservationChanges', 'true');
+                }
+            }
         } catch (err) {
             console.error('Error fetching reservations:', err);
-            setError('Error al cargar tus reservas');
-            Alert.alert('Error', 'No se pudieron cargar tus reservas');
+            setError(err.message || 'Hubo un problema al cargar tus reservas. Por favor, intenta de nuevo.');
+            setReservations([]);
         } finally {
             setLoading(false);
         }
@@ -282,7 +287,15 @@ export default function MisReservas({ navigation, route }) {
             const date = new Date();
             date.setUTCHours(parseInt(hours, 10));
             date.setUTCMinutes(parseInt(minutes, 10));
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            
+            // Convertir a formato 12 horas con AM/PM
+            let hour = date.getHours();
+            const minute = date.getMinutes().toString().padStart(2, '0');
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12;
+            hour = hour ? hour : 12; // Las 0 horas se muestran como 12
+            
+            return `${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
         } catch (e) {
             return utcTimeString;
         }

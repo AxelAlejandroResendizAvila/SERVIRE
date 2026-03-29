@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import InputField from '../components/InputField';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import LogoSVG from '../components/LogoSVG';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -56,7 +57,7 @@ export default function LoginScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logoText}>Servire</Text>
+                    <LogoSVG size={80} />
                 </View>
 
                 <Text style={styles.title}>Iniciar sesión</Text>
@@ -146,6 +147,7 @@ const styles = StyleSheet.create({
     logoContainer: {
         alignItems: 'center',
         marginBottom: theme.spacing.xl,
+        justifyContent: 'center',
     },
     logoText: {
         fontSize: 40,

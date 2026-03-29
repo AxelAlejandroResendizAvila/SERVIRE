@@ -168,7 +168,7 @@ export default function FormularioReservas({ navigation, route }) {
                     'Éxito',
                     response.message || 'Reserva creada correctamente',
                     [{ text: 'OK', onPress: () => {
-                        navigation.navigate('HomeTabs', { screen: 'Reservas' });
+                        navigation.replace('MainTabs', { screen: 'Reservas' });
                     }}]
                 );
             } else {

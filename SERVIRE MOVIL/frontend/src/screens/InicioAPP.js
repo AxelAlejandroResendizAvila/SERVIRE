@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
@@ -7,6 +7,7 @@ import Button from '../components/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useReservations } from '../hooks/useReservations';
+import LogoSVG from '../components/LogoSVG';
 
 export default function InicioAPP({ navigation }) {
     const { user } = useAuth();
@@ -18,14 +19,22 @@ export default function InicioAPP({ navigation }) {
 
     return (
         <View style={styles.container}>
-            <Header title="Inicio" rightIcon="notifications-outline" onRightPress={() => { }} />
+            <Header 
+                title="Inicio" 
+                showLogo={true}
+            />
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                {/* Saludo */}
+                {/* Saludo con Logo decorativo */}
                 <View style={styles.greetingContainer}>
-                    <Text style={styles.greetingTitle}>Hola, {userName}</Text>
-                    <Text style={styles.greetingSubtitle}>¿Qué espacio necesitas hoy?</Text>
+                    <View style={styles.greetingHeaderWithLogo}>
+                        <View style={styles.greetingTextContainer}>
+                            <Text style={styles.greetingTitle}>Hola, {userName}</Text>
+                            <Text style={styles.greetingSubtitle}>¿Qué espacio necesitas hoy?</Text>
+                        </View>
+                        <LogoSVG size={50} />
+                    </View>
                 </View>
 
                 {/* Tarjeta de Nueva Reserva */}
@@ -302,5 +311,19 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.9)',
         lineHeight: 18,
+    },
+    greetingHeaderWithLogo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    greetingTextContainer: {
+        flex: 1,
+    },
+    greetingLogo: {
+        width: 50,
+        height: 50,
+        marginLeft: theme.spacing.md,
+        opacity: 0.85,
     }
 });

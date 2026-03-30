@@ -108,15 +108,6 @@ export default function LoginScreen({ navigation }) {
 
                     {loading && <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />}
 
-                    <Text style={styles.orText}>O</Text>
-
-                    <Button
-                        title="Entrar con Google"
-                        variant="outline"
-                        onPress={() => { }}
-                        style={styles.googleButton}
-                        disabled={loading}
-                    />
                 </View>
 
                 <View style={styles.footer}>

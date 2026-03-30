@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-// Si aún no tienes una, déjala así por ahora.
+
 let API_BASE_URL = 'https://192.168.100.25/api'; //cambiar IP si es necesario
 // La variable __DEV__ es de React Native y es "true" automáticamente cuando usas Expo Go
 if (__DEV__) {

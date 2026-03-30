@@ -105,7 +105,7 @@ export default function RegistroScreen({ navigation }) {
 
                     <InputField
                         label="Correo electrónico"
-                        placeholder="john@example.com"
+                        placeholder="john@upq.mx o john@upq.edu.mx"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -115,7 +115,7 @@ export default function RegistroScreen({ navigation }) {
 
                     <InputField
                         label="Teléfono (opcional)"
-                        placeholder="+34 123 456 789"
+                        placeholder="+52 442 456 789"
                         value={telefono}
                         onChangeText={setTelefono}
                         keyboardType="phone-pad"

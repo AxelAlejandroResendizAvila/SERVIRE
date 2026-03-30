@@ -27,8 +27,6 @@ const Header = ({ toggleSidebar }) => {
 
             <div className="flex items-center space-x-4">
                 <button className="relative p-2 text-gray-500 hover:text-primary transition-colors">
-                    <Bell size={20} />
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-danger rounded-full border border-white"></span>
                 </button>
 
                 <div className="flex items-center space-x-3 border-l border-border pl-4">

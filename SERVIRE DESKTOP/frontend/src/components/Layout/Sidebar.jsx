@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutGrid, ClipboardList, PlusSquare, X } from 'lucide-react';
+import logo from "../../assets/logo_icon.png";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const location = useLocation();
@@ -22,9 +23,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <aside className={sidebarClasses}>
                 <div className="flex items-center justify-between h-16 px-6 bg-secondary/90 border-b border-white/10">
                     <span className="text-xl font-bold tracking-wider text-primary">SERVIRE</span>
-                    <button className="md:hidden text-white hover:text-primary" onClick={toggleSidebar}>
-                        <X size={24} />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <img 
+                            src={logo} 
+                            alt="Logo SERVIRE" 
+                            className="w-15 h-auto object-contain" 
+                        />
+                        <button className="md:hidden text-white hover:text-primary" onClick={toggleSidebar}>
+                            <X size={24} />
+                        </button>
+                    </div>
                 </div>
 
                 <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">

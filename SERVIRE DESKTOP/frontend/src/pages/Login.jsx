@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import logo from '../assets/logo_servire.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -32,8 +33,12 @@ const Login = () => {
     return (
         <div className="min-h-screen bg-surface flex items-center justify-center p-4">
             <Card className="w-full max-w-md p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-primary tracking-wider mb-2">SERVIRE</h1>
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <img 
+                    src={logo} 
+                    alt="Logo SERVIRE" 
+                    className="w-50 h-auto mb-4" 
+                    />
                     <p className="text-gray-500">Inicia sesión en tu cuenta</p>
                 </div>
 

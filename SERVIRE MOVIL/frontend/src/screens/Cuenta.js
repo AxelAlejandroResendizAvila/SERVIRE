@@ -105,6 +105,25 @@ export default function Cuenta({ navigation }) {
                     </View>
                     <Text style={styles.profileName}>{user.nombre}</Text>
                     <Text style={styles.profileEmail}>{user.email}</Text>
+                    {user.rol && (
+                        <View style={[
+                            styles.roleBadge, 
+                            user.rol === 'admin' ? styles.adminBadge : styles.userBadge
+                        ]}>
+                            <Ionicons 
+                                name={user.rol === 'admin' ? "shield-checkmark" : "person"} 
+                                size={12} 
+                                color={user.rol === 'admin' ? "#fff" : theme.colors.text.secondary} 
+                                style={{ marginRight: 4 }}
+                            />
+                            <Text style={[
+                                styles.roleText,
+                                user.rol === 'admin' ? styles.adminText : styles.userText
+                            ]}>
+                                {user.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                            </Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.section}>
@@ -242,5 +261,33 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: theme.colors.border,
         paddingTop: theme.spacing.xl,
+    },
+    roleBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        marginTop: 8,
+        borderWidth: 1,
+    },
+    adminBadge: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    userBadge: {
+        backgroundColor: '#f0f0f0',
+        borderColor: '#e0e0e0',
+    },
+    roleText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    adminText: {
+        color: '#fff',
+    },
+    userText: {
+        color: theme.colors.text.secondary,
     }
 });

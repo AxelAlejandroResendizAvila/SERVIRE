@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, AlertTriangle, RefreshCw, Clock, Users as UsersIcon, Search } from 'lucide-react';
+import { Check, X, AlertTriangle, RefreshCw, Clock, Users as UsersIcon } from 'lucide-react';
 import Badge from '../components/UI/Badge';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
@@ -145,7 +145,6 @@ const AdminPanel = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [activeTab, setActiveTab] = useState('pending');
-    const [searchQuery, setSearchQuery] = useState('');
 
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -217,10 +216,7 @@ const AdminPanel = () => {
                         (req.status === 'approved' && isReservationExpired(req.endDateRaw, req.date, req.time));
         }
 
-        const str = `${req.requester} ${req.requesterEmail} ${req.space} ${req.date} ${req.time} ${req.status} ${req.motivo_rechazo || ''}`.toLowerCase();
-        const matchesSearch = str.includes(searchQuery.toLowerCase());
-
-        return matchesTab && matchesSearch;
+        return matchesTab;
     });
 
     const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -243,21 +239,9 @@ const AdminPanel = () => {
                     </p>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                    <div className="relative w-full sm:w-64">
-                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar solicitud..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
-                        />
-                    </div>
-                    <Button variant="outline" onClick={fetchRequests} disabled={loading} className="shrink-0 w-full sm:w-auto">
-                        <RefreshCw size={16} className={`mr-1 ${loading ? 'animate-spin' : ''}`} /> Actualizar
-                    </Button>
-                </div>
+                <Button variant="outline" onClick={fetchRequests} disabled={loading} className="shrink-0">
+                    <RefreshCw size={16} className={`mr-1 ${loading ? 'animate-spin' : ''}`} /> Actualizar
+                </Button>
             </div>
 
             <div className="flex gap-1 bg-surface p-1 rounded-card border border-border w-fit">

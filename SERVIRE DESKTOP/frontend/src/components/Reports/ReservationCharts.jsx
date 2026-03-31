@@ -67,18 +67,23 @@ const ReservationCharts = () => {
         setLoading(true);
         setError(null);
         try {
+            console.log('🔄 Cargando estadísticas...');
             let statsData = await getReservationStats();
+            console.log('📦 Datos recibidos de getReservationStats:', statsData);
             
             // Si no hay datos, usar datos de ejemplo
             if (!statsData || statsData.length === 0) {
+                console.warn('⚠️ Usando datos mock porque no hay datos reales');
                 statsData = getMockData();
             }
 
             setStats(statsData);
+            console.log('✅ Stats establecidos:', statsData);
 
             // Top 5 espacios más reservados
             const top5 = statsData.slice(0, 5);
             setTopSpaces(top5);
+            console.log('✅ Top 5 establecidos:', top5);
 
             // Top 5 espacios menos reservados (excluyendo los con 0)
             const bottom5 = statsData
@@ -86,6 +91,7 @@ const ReservationCharts = () => {
                 .slice(-5)
                 .reverse();
             setBottomSpaces(bottom5);
+            console.log('✅ Bottom 5 establecidos:', bottom5);
 
             // Calcular datos mensuales
             try {
@@ -100,7 +106,7 @@ const ReservationCharts = () => {
                 setMonthlyData(getMockMonthlyData());
             }
         } catch (err) {
-            console.error('Error cargando datos:', err);
+            console.error('❌ Error cargando datos:', err);
             // Usar datos de ejemplo si falla la carga
             const mockData = getMockData();
             setStats(mockData);

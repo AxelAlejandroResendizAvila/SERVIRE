@@ -229,6 +229,15 @@ export const getReservationStats = async () => {
             getAdminRequests()
         ]);
 
+        console.log('📊 Espacios recibidos:', spaces);
+        console.log('📊 Reservas recibidas:', reservations);
+
+        // Si no hay espacios o reservas, retornar array vacío para usar mock
+        if (!spaces || spaces.length === 0) {
+            console.warn('⚠️ No hay espacios disponibles');
+            return [];
+        }
+
         // Contar reservas confirmadas por espacio
         const stats = spaces.map(space => {
             const confirmedReservations = reservations.filter(
@@ -248,9 +257,10 @@ export const getReservationStats = async () => {
             };
         });
 
+        console.log('✅ Estadísticas calculadas:', stats);
         return stats.sort((a, b) => b.confirmedCount - a.confirmedCount);
     } catch (e) {
-        console.error('Error al obtener estadísticas:', e);
+        console.error('❌ Error al obtener estadísticas:', e);
         return [];
     }
 };

@@ -32,6 +32,15 @@ const ReportDashboard = () => {
         leastPopularSpace: ''
     });
 
+    // Mock data de ejemplo
+    const mockStats = [
+        { spaceId: 1, spaceName: 'Auditorio Principal', confirmedCount: 12, totalCount: 15 },
+        { spaceId: 2, spaceName: 'Sala de Reuniones', confirmedCount: 9, totalCount: 11 },
+        { spaceId: 3, spaceName: 'Cafetería', confirmedCount: 7, totalCount: 8 },
+        { spaceId: 4, spaceName: 'Oficina 101', confirmedCount: 5, totalCount: 6 },
+        { spaceId: 5, spaceName: 'Laboratorio', confirmedCount: 3, totalCount: 4 },
+    ];
+
     useEffect(() => {
         loadData();
     }, []);
@@ -39,18 +48,29 @@ const ReportDashboard = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const statsData = await getReservationStats();
-            const allRequests = await getAdminRequests();
+            let statsData = await getReservationStats();
+            let allRequests = await getAdminRequests();
+
+            // Si no hay datos, usar ejemplo
+            if (!statsData || statsData.length === 0) {
+                statsData = mockStats;
+            }
+            if (!allRequests || allRequests.length === 0) {
+                allRequests = [
+                    { status: 'approved' }, { status: 'approved' }, { status: 'approved' },
+                    { status: 'pending' }, { status: 'pending' }
+                ];
+            }
 
             setStats(statsData);
 
             // Calcular resumen
             const totalReservations = allRequests.length;
             const confirmedCount = allRequests.filter(r => r.status === 'approved').length;
-            const topSpace = statsData.length > 0 ? statsData[0].spaceName : 'N/A';
+            const topSpace = statsData.length > 0 ? statsData[0].spaceName : 'Sin datos';
             const bottomSpace = statsData.length > 0
-                ? statsData.filter(s => s.confirmedCount > 0).pop()?.spaceName || 'N/A'
-                : 'N/A';
+                ? statsData.filter(s => s.confirmedCount > 0).pop()?.spaceName || 'Sin datos'
+                : 'Sin datos';
 
             setSummary({
                 totalSpaces: statsData.length,
@@ -62,6 +82,16 @@ const ReportDashboard = () => {
             });
         } catch (err) {
             console.error('Error:', err);
+            // Usar datos de ejemplo si falla
+            setStats(mockStats);
+            setSummary({
+                totalSpaces: mockStats.length,
+                totalReservations: 48,
+                confirmedReservations: 36,
+                approvalRate: 75,
+                mostPopularSpace: 'Auditorio Principal',
+                leastPopularSpace: 'Laboratorio'
+            });
         } finally {
             setLoading(false);
         }
@@ -80,7 +110,7 @@ const ReportDashboard = () => {
             {/* Header */}
 
             {/*borrado icono dahs*/}
-            
+
             <div>
                 <h2 className="text-3xl font-bold text-secondary mb-2">Dashboard de Estadísticas</h2>
                 <p className="text-gray-600">Resumen rápido del estado de los espacios y reservas</p>

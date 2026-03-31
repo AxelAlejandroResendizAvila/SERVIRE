@@ -9,7 +9,7 @@ lerna-debug.log*
 
 # Node modules in all directories
 **/node_modules/
-# **/uploads/
+**/uploads/
 
 migrate.js
 .env

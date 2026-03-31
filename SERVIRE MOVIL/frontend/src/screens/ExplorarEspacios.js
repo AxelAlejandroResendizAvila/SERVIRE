@@ -165,7 +165,7 @@ export default function ExplorarEspacios({ navigation }) {
                                 <Card style={styles.spaceCard}>
                                     {space.image ? (
                                         <Image
-                                            source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                            source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
                                             style={styles.spaceImage}
                                             resizeMode="cover"
                                         />

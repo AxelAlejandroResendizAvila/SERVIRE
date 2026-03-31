@@ -78,8 +78,11 @@ const ReportDashboard = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
+
+            {/*borrado icono dahs*/}
+            
             <div>
-                <h2 className="text-3xl font-bold text-secondary mb-2">📊 Dashboard de Estadísticas</h2>
+                <h2 className="text-3xl font-bold text-secondary mb-2">Dashboard de Estadísticas</h2>
                 <p className="text-gray-600">Resumen rápido del estado de los espacios y reservas</p>
             </div>
 

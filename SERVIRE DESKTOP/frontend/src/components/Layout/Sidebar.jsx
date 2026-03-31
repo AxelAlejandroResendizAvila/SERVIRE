@@ -27,7 +27,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                         <img 
                             src={logo} 
                             alt="Logo SERVIRE" 
-                            className="w-15 h-auto object-contain" 
+                            className="w-12 h-12 object-contain" 
+                            style={{ mixBlendMode: 'multiply' }}
                         />
                         <button className="md:hidden text-white hover:text-primary" onClick={toggleSidebar}>
                             <X size={24} />

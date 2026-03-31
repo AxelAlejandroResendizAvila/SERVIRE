@@ -7,7 +7,7 @@ import InputField from '../components/InputField';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import { Ionicons } from '@expo/vector-icons';
-import { createReservation, getSpaces, getSpaceById } from '../services/api';
+import { createReservation, getSpaces, getSpaceById, getToken } from '../services/api';
 import { config } from '../config';
 
 export default function FormularioReservas({ navigation, route }) {
@@ -149,12 +149,26 @@ export default function FormularioReservas({ navigation, route }) {
         setLoading(true);
 
         try {
+            // VERIFICAR QUE EL TOKEN EXISTE ANTES DE HACER LA RESERVA
+            const token = await getToken();
+            if (!token) {
+                Alert.alert('Error de Autenticación', 'No se encontró el token de sesión. Por favor, inicia sesión nuevamente.');
+                setLoading(false);
+                return;
+            }
+            console.log('✅ Token verificado, procediendo con la reserva');
+
             // Construimos las fechas ISO combinando la fecha seleccionada y las horas seleccionadas
             const fechaInicio = new Date(date);
             fechaInicio.setHours(startTime.getHours(), startTime.getMinutes(), 0);
 
             const fechaFin = new Date(date);
             fechaFin.setHours(endTime.getHours(), endTime.getMinutes(), 0);
+
+            console.log('📝 Creando reserva con los siguientes datos:');
+            console.log('  - Espacio:', space.id);
+            console.log('  - Inicio:', fechaInicio.toISOString());
+            console.log('  - Fin:', fechaFin.toISOString());
 
             const response = await createReservation({
                 id_espacio: space.id,

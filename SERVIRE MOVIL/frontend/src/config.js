@@ -1,18 +1,21 @@
 import Constants from 'expo-constants';
 
-// URL de producción (Render)
-//let API_BASE_URL = 'https://192.168.100.25/api'; //cambiar IP si es necesario
-let API_BASE_URL = 'https://servire.onrender.com/api';
+// ========================================
+// ⚠️ IMPORTANTE: CAMBIAR ESTO SI CAMBIAS DE RED
+// ========================================
+// IP de tu computadora en la red local (para desarrollo)
+const DEV_IP = '10.197.243.165';
 
-// En modo desarrollo, apunta al backend local automáticamente
-if (__DEV__) {
-    const hostUri = Constants.expoConfig?.hostUri;
+// En modo desarrollo, apunta al backend local
+let API_BASE_URL = `http://${DEV_IP}:3000/api`;
 
-    if (hostUri) {
-        const pcIp = hostUri.split(':')[0];
-        API_BASE_URL = `http://${pcIp}:3000/api`;
-    }
+// En producción, apunta a Render
+if (!__DEV__) {
+    API_BASE_URL = 'https://servire.onrender.com/api';
 }
+
+console.log(`🌐 Modo: ${__DEV__ ? 'DESARROLLO' : 'PRODUCCIÓN'}`);
+console.log(`🔗 API Base URL: ${API_BASE_URL}`);
 
 export const config = {
     baseURL: API_BASE_URL,

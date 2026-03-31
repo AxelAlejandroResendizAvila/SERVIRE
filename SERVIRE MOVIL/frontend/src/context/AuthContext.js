@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getToken, removeToken, saveToken } from '../services/api';
+import { getToken, removeToken, saveToken, authLogin as apiAuthLogin, authRegister as apiAuthRegister } from '../services/api';
 import axios from 'axios';
 import { config } from '../config';
 
@@ -46,23 +46,23 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const response = await axios.post(`${config.baseURL}/auth/login`, {
-        email,
-        contrasena: password,
-      });
-
-      const { token, usuario } = response.data;
-
-      // Guardar token
-      await saveToken(token);
-
+      console.log('🔐 Iniciando login para:', email);
+      const response = await apiAuthLogin(email, password);
+      console.log('✅ Respuesta de login recibida:', response);
+      const { usuario, token } = response;
+      
+      // Verificar que el token se guardó
+      const savedToken = await getToken();
+      console.log('📝 Token guardado en AsyncStorage:', savedToken ? '✅ Sí' : '❌ No');
+      
       setUser(usuario);
-      return response.data;
+      return response;
     } catch (error) {
       let errorMessage = 'Error al iniciar sesión';
       
-      if (error.response) {
-        // El servidor respondió con un código de estado fuera del rango 2xx
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
         if (error.response.status === 401) {
           errorMessage = 'Correo o contraseña incorrectos';
         } else if (error.response.status === 400) {
@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }) => {
           errorMessage = error.response.data.message;
         }
       } else if (error.request) {
-        // La solicitud fue hecha pero no se recibió respuesta
         errorMessage = 'No se pudo conectar con el servidor';
       }
       
@@ -85,7 +84,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (nombre, apellidos, email, password, telefono = '') => {
     try {
       setLoading(true);
-      const response = await axios.post(`${config.baseURL}/auth/register`, {
+      const response = await apiAuthRegister({
         nombre,
         apellidos,
         email,
@@ -93,17 +92,15 @@ export const AuthProvider = ({ children }) => {
         telefono,
       });
 
-      const { token, usuario } = response.data;
-
-      // Guardar token
-      await saveToken(token);
-
+      const { usuario } = response;
       setUser(usuario);
-      return response.data;
+      return response;
     } catch (error) {
       let errorMessage = 'Error al registrarse';
       
-      if (error.response) {
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
         if (error.response.status === 400) {
           errorMessage = error.response.data?.message || 'Datos inválidos. Verifica que el correo no esté registrado';
         } else if (error.response.status === 409) {

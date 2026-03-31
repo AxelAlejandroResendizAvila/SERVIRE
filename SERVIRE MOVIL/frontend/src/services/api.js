@@ -13,9 +13,15 @@ const API_BASE_URL = config.baseURL;
 export const getToken = async () => {
   try {
     const token = await AsyncStorage.getItem('authToken');
-    return token;
+    if (token) {
+      console.log('✅ Token recuperado de AsyncStorage');
+      return token;
+    } else {
+      console.log('⚠️ No hay token en AsyncStorage');
+      return null;
+    }
   } catch (error) {
-    console.error('Error obteniendo token:', error);
+    console.error('❌ Error obteniendo token:', error);
     return null;
   }
 };
@@ -25,9 +31,22 @@ export const getToken = async () => {
  */
 export const saveToken = async (token) => {
   try {
+    if (!token) {
+      console.error('❌ Intento de guardar un token vacío/null');
+      return;
+    }
     await AsyncStorage.setItem('authToken', token);
+    console.log('✅ Token guardado exitosamente en AsyncStorage');
+    
+    // Verificar que se guardó correctamente
+    const retrieved = await AsyncStorage.getItem('authToken');
+    if (retrieved === token) {
+      console.log('✅ Verificado: Token recuperado correctamente de AsyncStorage');
+    } else {
+      console.error('❌ Error: Token no se guardó correctamente');
+    }
   } catch (error) {
-    console.error('Error guardando token:', error);
+    console.error('❌ Error guardando token:', error);
   }
 };
 
@@ -65,38 +84,65 @@ const safeParseJson = async (response) => {
 const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  };
-
-  // Si hay un token, lo agregamos al header
-  const token = await getToken();
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
-  }
-
-  const requestOptions = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...(options.headers || {}),
-    },
-  };
-
   try {
+    // OBTENER TOKEN - PASO 1
+    const token = await getToken();
+    console.log(`📍 [${new Date().toLocaleTimeString()}] Llamada a ${endpoint}`);
+    console.log(`🔑 Token disponible: ${token ? '✅ Sí' : '❌ No'}`);
+
+    // PREPARAR HEADERS - PASO 2
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    // AGREGAR AUTHORIZATION SI EXISTE TOKEN - PASO 3
+    if (token && token.trim()) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log(`✅ Authorization header agregado`);
+    } else {
+      console.warn(`⚠️ ⚠️ ⚠️ NO HAY TOKEN PARA ${endpoint} ⚠️ ⚠️ ⚠️`);
+    }
+
+    // CONSTRUIR REQUEST OPTIONS - PASO 4
+    const requestOptions = {
+      method: options.method || 'GET',
+      headers: {
+        ...headers,
+        ...(options.headers || {}),
+      },
+    };
+
+    // AGREGAR BODY SI EXISTE - PASO 5
+    if (options.body) {
+      requestOptions.body = options.body;
+      console.log(`📝 Body incluido en la petición`);
+    }
+
+    console.log(`🌐 URL: ${url}`);
+    console.log(`📋 Headers finales:`, {
+      'Content-Type': 'application/json',
+      'Authorization': headers['Authorization'] ? '✅ Presente' : '❌ Faltante'
+    });
+
+    // REALIZAR FETCH - PASO 6
     const response = await fetch(url, requestOptions);
 
+    // PROCESAR RESPUESTA - PASO 7
     if (!response.ok) {
       const errorData = await safeParseJson(response);
       const msg =
         (errorData && (errorData.error || errorData.message)) ||
         `HTTP Error: ${response.status}`;
+      console.error(`❌ Error HTTP ${response.status}:`, msg);
       throw new Error(msg);
     }
 
     const data = await safeParseJson(response);
+    console.log(`✅ Respuesta exitosa para ${endpoint}`);
     return data;
+
   } catch (error) {
+    console.error(`❌ Error en apiCall para ${endpoint}:`, error.message);
     throw error;
   }
 };
@@ -118,6 +164,8 @@ export const authRegister = async (userData) => {
 
   if (response.token) {
     await saveToken(response.token);
+    // Pequeño delay para asegurar que AsyncStorage guardó el token
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   return response;
@@ -137,6 +185,9 @@ export const authLogin = async (email, contrasena) => {
 
   if (response.token) {
     await saveToken(response.token);
+    // Pequeño delay para asegurar que AsyncStorage guardó el token
+    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log('🎯 Token listo para usar en próximas peticiones');
   }
 
   return response;

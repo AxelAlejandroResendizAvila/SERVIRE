@@ -8,6 +8,7 @@ import CreateSpace from './pages/CreateSpace';
 import EditSpace from './pages/EditSpace';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import UserManagement from './pages/UserManagement';
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
           {/* Protected Routes */}
           <Route path="/" element={<Navigate to="/reserva" replace />} />
           <Route path="/reserva" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <Layout>
                 <ReservationView />
               </Layout>
@@ -45,6 +46,13 @@ function App() {
             <ProtectedRoute adminOnly={true}>
               <Layout>
                 <EditSpace />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/usuarios" element={
+            <ProtectedRoute adminOnly={true}>
+              <Layout>
+                <UserManagement />
               </Layout>
             </ProtectedRoute>
           } />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Search, Bell, LogOut } from 'lucide-react';
+import { Menu, Search, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Header = ({ toggleSidebar }) => {
@@ -26,21 +26,24 @@ const Header = ({ toggleSidebar }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-                <button className="relative p-2 text-gray-500 hover:text-primary transition-colors">
-                </button>
-
                 <div className="flex items-center space-x-3 border-l border-border pl-4">
-                    <div className="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
-                        {user?.nombre?.substring(0, 2).toUpperCase() || 'UN'}
+                    <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center font-bold text-white text-sm shadow-sm">
+                        {user?.nombre?.substring(0, 2).toUpperCase() || 'AD'}
                     </div>
                     <div className="hidden md:block">
-                        <p className="text-sm font-medium">{user?.nombre || 'Usuario'}</p>
-                        <p className="text-xs text-gray-500 break-all w-32 truncate">{user?.email || ''}</p>
+                        <p className="text-sm font-semibold text-gray-800">{user?.nombre || 'Admin'}</p>
+                        <p className="text-xs text-gray-400 truncate max-w-[140px]">{user?.email || ''}</p>
+                        {user?.rol === 'admin' && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <Shield size={10} className="text-primary" />
+                                <span className="text-xs font-bold text-primary uppercase tracking-wider">Administrador</span>
+                            </div>
+                        )}
                     </div>
 
                     <button
                         onClick={logout}
-                        className="ml-2 p-2 text-gray-500 hover:text-danger hover:bg-red-50 rounded-full transition-colors"
+                        className="ml-2 p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                         title="Cerrar sesión"
                     >
                         <LogOut size={18} />

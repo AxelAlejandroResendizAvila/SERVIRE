@@ -232,19 +232,19 @@ export const getReservationStats = async () => {
         // Contar reservas confirmadas por espacio
         const stats = spaces.map(space => {
             const confirmedReservations = reservations.filter(
-                r => r.spaceId === space.id_espacio && r.status === 'approved'
+                r => r.spaceId === space.id && r.status === 'approved'
             ).length;
             
             const totalReservations = reservations.filter(
-                r => r.spaceId === space.id_espacio
+                r => r.spaceId === space.id
             ).length;
 
             return {
-                spaceId: space.id_espacio,
-                spaceName: space.nombre,
+                spaceId: space.id,
+                spaceName: space.name,
                 confirmedCount: confirmedReservations,
                 totalCount: totalReservations,
-                building: space.id_edificio
+                building: space.buildingId
             };
         });
 

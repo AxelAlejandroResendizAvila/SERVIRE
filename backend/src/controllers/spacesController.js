@@ -158,7 +158,7 @@ export const createSpace = async (req, res) => {
         return res.status(400).json({ error: 'Nombre y capacidad son obligatorios' });
     }
 
-    const mainImage = req.files?.imagen?.[0] ? `/uploads/${req.files.imagen[0].filename}` : null;
+    const mainImage = req.files?.imagen?.[0] ? req.files.imagen[0].path : null;
 
     try {
         const query = `
@@ -185,7 +185,7 @@ export const createSpace = async (req, res) => {
                 try {
                     await pool.query(
                         'INSERT INTO imagenes_espacios (id_espacio, url, orden) VALUES ($1, $2, $3)',
-                        [spaceId, `/uploads/${file.filename}`, i]
+                        [spaceId, file.path, i]
                     );
                 } catch (e) {
                     console.error('Could not save gallery image:', e.message);
@@ -216,7 +216,7 @@ export const updateSpace = async (req, res) => {
         let query, values;
 
         if (req.files?.imagen?.[0]) {
-            const imagePath = `/uploads/${req.files.imagen[0].filename}`;
+            const imagePath = req.files.imagen[0].path;
             query = `
                 UPDATE espacios 
                 SET nombre = $1, capacidad = $2, id_categoria = $3, disponible = $4, 
@@ -252,7 +252,7 @@ export const updateSpace = async (req, res) => {
                 try {
                     await pool.query(
                         'INSERT INTO imagenes_espacios (id_espacio, url, orden) VALUES ($1, $2, $3)',
-                        [id, `/uploads/${file.filename}`, i + 100] 
+                        [id, file.path, i + 100] 
                     );
                 } catch (e) {
                     console.error('Could not save gallery image:', e.message);

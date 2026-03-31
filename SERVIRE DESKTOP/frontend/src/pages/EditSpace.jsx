@@ -54,7 +54,7 @@ const EditSpace = () => {
                     id_edificio: space.buildingId?.toString() || ''
                 });
                 if (space.image) {
-                    setMainImagePreview(`${API_URL}${space.image}`);
+                    setMainImagePreview(space.image.startsWith('http') ? space.image : `${API_URL}${space.image}`);
                 }
                 setExistingGallery(space.gallery || []);
             } catch (err) {
@@ -206,7 +206,7 @@ const EditSpace = () => {
                         <div className="flex flex-wrap gap-3">
                             {existingGallery.map(img => (
                                 <div key={img.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                                    <img src={`${API_URL}${img.url}`} alt="Gallery" className="w-full h-full object-cover" />
+                                    <img src={img.url.startsWith('http') ? img.url : `${API_URL}${img.url}`} alt="Gallery" className="w-full h-full object-cover" />
                                     <button type="button" onClick={() => removeExistingGalleryImage(img.id)} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Trash2 size={16} />
                                     </button>

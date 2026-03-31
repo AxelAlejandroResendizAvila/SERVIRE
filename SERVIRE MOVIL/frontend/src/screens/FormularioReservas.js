@@ -198,7 +198,7 @@ export default function FormularioReservas({ navigation, route }) {
                     <Card style={styles.spaceInfoCard}>
                         {space?.image ? (
                             <Image
-                                source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
                                 style={styles.spaceImage}
                                 resizeMode="cover"
                             />
@@ -239,7 +239,7 @@ export default function FormularioReservas({ navigation, route }) {
                             renderItem={({ item }) => (
                                 <View style={styles.galleryItem}>
                                     <Image
-                                        source={{ uri: `${config.baseURL.replace('/api', '')}${item.url}` }}
+                                        source={{ uri: item.url.startsWith('http') ? item.url : `${config.baseURL.replace('/api', '')}${item.url}` }}
                                         style={styles.galleryImage}
                                         resizeMode="cover"
                                     />
@@ -282,7 +282,7 @@ export default function FormularioReservas({ navigation, route }) {
                                             <View style={styles.selectedSpaceDetail}>
                                                 {space.image ? (
                                                     <Image
-                                                        source={{ uri: `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                                        source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
                                                         style={styles.detailImage}
                                                         resizeMode="cover"
                                                     />
@@ -322,7 +322,7 @@ export default function FormularioReservas({ navigation, route }) {
                                         <Card style={styles.spaceListItem}>
                                             {item.image ? (
                                                 <Image
-                                                    source={{ uri: `${config.baseURL.replace('/api', '')}${item.image}` }}
+                                                    source={{ uri: item.image.startsWith('http') ? item.image : `${config.baseURL.replace('/api', '')}${item.image}` }}
                                                     style={styles.spaceListImage}
                                                     resizeMode="cover"
                                                 />

@@ -1,22 +1,24 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import dotenv from 'dotenv';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config();
 
-// Configure multer for image uploads
-const uploadsDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Configurar Cloudinary con tus credenciales
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadsDir),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+// Configurar el almacenamiento en la nube
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'servire', // Carpeta donde se guardarán en Cloudinary
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
+        transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // Opcional: limitar tamaño
     }
 });
 

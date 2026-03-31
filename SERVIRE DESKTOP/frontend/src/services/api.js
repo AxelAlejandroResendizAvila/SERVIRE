@@ -229,28 +229,38 @@ export const getReservationStats = async () => {
             getAdminRequests()
         ]);
 
+        console.log('📊 Espacios recibidos:', spaces);
+        console.log('📊 Reservas recibidas:', reservations);
+
+        // Si no hay espacios o reservas, retornar array vacío para usar mock
+        if (!spaces || spaces.length === 0) {
+            console.warn('⚠️ No hay espacios disponibles');
+            return [];
+        }
+
         // Contar reservas confirmadas por espacio
         const stats = spaces.map(space => {
             const confirmedReservations = reservations.filter(
-                r => r.spaceId === space.id_espacio && r.status === 'approved'
+                r => r.spaceId === space.id && r.status === 'approved'
             ).length;
             
             const totalReservations = reservations.filter(
-                r => r.spaceId === space.id_espacio
+                r => r.spaceId === space.id
             ).length;
 
             return {
-                spaceId: space.id_espacio,
-                spaceName: space.nombre,
+                spaceId: space.id,
+                spaceName: space.name,
                 confirmedCount: confirmedReservations,
                 totalCount: totalReservations,
-                building: space.id_edificio
+                building: space.buildingId
             };
         });
 
+        console.log('✅ Estadísticas calculadas:', stats);
         return stats.sort((a, b) => b.confirmedCount - a.confirmedCount);
     } catch (e) {
-        console.error('Error al obtener estadísticas:', e);
+        console.error('❌ Error al obtener estadísticas:', e);
         return [];
     }
 };

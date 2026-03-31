@@ -28,21 +28,21 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <Layout>
                 <AdminPanel />
               </Layout>
             </ProtectedRoute>
           } />
           <Route path="/crear-espacio" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <Layout>
                 <CreateSpace />
               </Layout>
             </ProtectedRoute>
           } />
           <Route path="/editar-espacio/:id" element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <Layout>
                 <EditSpace />
               </Layout>

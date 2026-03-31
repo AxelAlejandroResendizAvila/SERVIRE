@@ -4,6 +4,7 @@ import Badge from '../components/UI/Badge';
 import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import { getAdminRequests, approveReservation, declineReservation } from '../services/api';
+import UserManagement from './UserManagement';
 
 // Función para parsear fechas UTC correctamente (igual que en móbil)
 const parseUTCDate = (isoString) => {
@@ -231,6 +232,7 @@ const AdminPanel = () => {
         { key: 'approved', label: 'Activas', count: approvedCount },
         { key: 'history', label: 'Historial', count: null },
         { key: 'all', label: 'Todos', count: requests.length },
+        { key: 'users', label: 'Usuarios', count: null },
     ];
 
     return (
@@ -260,7 +262,11 @@ const AdminPanel = () => {
                 </div>
             </div>
 
-            <div className="flex gap-1 bg-surface p-1 rounded-card border border-border w-fit">
+            {activeTab === 'users' ? (
+                <UserManagement />
+            ) : (
+                <>
+                    <div className="flex gap-1 bg-surface p-1 rounded-card border border-border w-fit">
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
@@ -414,6 +420,8 @@ const AdminPanel = () => {
                         </table>
                     </div>
                 </div>
+            )}
+                </>
             )}
 
             <Modal

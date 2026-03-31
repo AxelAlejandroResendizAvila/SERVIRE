@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
@@ -8,12 +8,20 @@ const authMiddleware = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'servire_secret_key');
         req.usuario = decoded.id;
+        req.rol = decoded.rol;
         next();
     } catch (err) {
         res.status(401).json({ error: 'El token no es válido' });
     }
+};
+
+export const adminMiddleware = (req, res, next) => {
+    if (req.rol !== 'admin') {
+        return res.status(403).json({ error: 'Acceso restringido: Se requiere rol de administrador' });
+    }
+    next();
 };
 
 export default authMiddleware;

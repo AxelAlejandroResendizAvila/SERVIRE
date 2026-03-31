@@ -201,3 +201,22 @@ export const getMyReservations = async () => {
         return [];
     }
 };
+
+export const getUsers = async () => {
+    const res = await fetch(`${BASE_URL}/auth/users`, {
+        headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Error al obtener usuarios');
+    return await res.json();
+};
+
+export const updateUserRole = async (userId, newRole) => {
+    const res = await fetch(`${BASE_URL}/auth/users/role`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId, newRole })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al actualizar rol');
+    return data;
+};

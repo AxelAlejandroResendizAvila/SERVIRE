@@ -15,8 +15,7 @@ import {
     Line
 } from 'recharts';
 import { DownloadCloud, RefreshCw } from 'lucide-react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { getReservationStats, getAdminRequests } from '../../services/api';
 import ReportDashboard from './ReportDashboard';
 
@@ -99,58 +98,191 @@ const ReservationCharts = () => {
 
     const downloadPDF = async () => {
         try {
-            const element = document.getElementById('reports-container');
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true
-            });
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 12;
+            const contentWidth = pageWidth - margin * 2;
+            let y = 12;
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4'
-            });
+            const totalReservas = stats.reduce((sum, s) => sum + s.totalCount, 0);
+            const totalConfirmadas = stats.reduce((sum, s) => sum + s.confirmedCount, 0);
+            const tasaConfirmacion = totalReservas > 0 ? Math.round((totalConfirmadas / totalReservas) * 100) : 0;
 
-            const imgWidth = 280;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 10;
+            const addPageIfNeeded = (neededHeight) => {
+                if (y + neededHeight > pageHeight - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+            };
 
-            // Primera página
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight() - 20;
+            const drawSectionTitle = (title, color = [30, 64, 175]) => {
+                addPageIfNeeded(12);
+                doc.setFillColor(color[0], color[1], color[2]);
+                doc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(12);
+                doc.text(title, margin + 3, y + 5.4);
+                doc.setTextColor(40, 40, 40);
+                y += 12;
+            };
 
-            // Páginas adicionales si es necesario
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight + 10;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
+            const drawMetricCard = (x, cardY, width, title, value, color) => {
+                doc.setDrawColor(225, 229, 235);
+                doc.setFillColor(248, 250, 252);
+                doc.roundedRect(x, cardY, width, 24, 2, 2, 'FD');
+
+                doc.setFillColor(color[0], color[1], color[2]);
+                doc.rect(x, cardY, width, 4, 'F');
+
+                doc.setTextColor(85, 85, 85);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8);
+                doc.text(title.toUpperCase(), x + 2, cardY + 10);
+
+                doc.setTextColor(25, 25, 25);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.text(String(value), x + 2, cardY + 19);
+            };
+
+            const drawTable = (title, rows, color) => {
+                drawSectionTitle(title, color);
+                if (!rows.length) {
+                    addPageIfNeeded(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.text('Sin datos disponibles', margin + 2, y);
+                    y += 10;
+                    return;
+                }
+
+                const col1Width = 12;
+                const col2Width = contentWidth - 44;
+                const col3Width = 32;
+                const rowHeight = 8;
+
+                addPageIfNeeded(rowHeight);
+                doc.setFillColor(241, 245, 249);
+                doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                doc.setDrawColor(220, 226, 232);
+                doc.rect(margin, y, contentWidth, rowHeight);
+                doc.line(margin + col1Width, y, margin + col1Width, y + rowHeight);
+                doc.line(margin + col1Width + col2Width, y, margin + col1Width + col2Width, y + rowHeight);
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(9);
+                doc.text('#', margin + 3, y + 5.3);
+                doc.text('Espacio', margin + col1Width + 2, y + 5.3);
+                doc.text('Reservas', margin + col1Width + col2Width + 2, y + 5.3);
+                y += rowHeight;
+
+                rows.forEach((row, index) => {
+                    addPageIfNeeded(rowHeight);
+                    if (index % 2 === 0) {
+                        doc.setFillColor(250, 252, 255);
+                        doc.rect(margin, y, contentWidth, rowHeight, 'F');
+                    }
+
+                    doc.setDrawColor(232, 236, 240);
+                    doc.rect(margin, y, contentWidth, rowHeight);
+                    doc.line(margin + col1Width, y, margin + col1Width, y + rowHeight);
+                    doc.line(margin + col1Width + col2Width, y, margin + col1Width + col2Width, y + rowHeight);
+
+                    const spaceName = doc.splitTextToSize(row.spaceName || 'Sin nombre', col2Width - 4)[0] || 'Sin nombre';
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.text(String(index + 1), margin + 3, y + 5.3);
+                    doc.text(spaceName, margin + col1Width + 2, y + 5.3);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(String(row.confirmedCount || 0), margin + col1Width + col2Width + 2, y + 5.3);
+                    y += rowHeight;
+                });
+
+                y += 4;
+            };
+
+            // Header principal
+            doc.setFillColor(15, 23, 42);
+            doc.rect(0, 0, pageWidth, 28, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text('Reporte de Reservas', margin, 12);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.text('Resumen ejecutivo de espacios', margin, 18);
+            doc.text(`Generado: ${new Date().toLocaleString('es-ES')}`, margin, 23.5);
+
+            y = 36;
+
+            drawSectionTitle('Resumen General', [37, 99, 235]);
+
+            addPageIfNeeded(28);
+            const gap = 4;
+            const cardWidth = (contentWidth - gap * 3) / 4;
+            const cardY = y;
+            drawMetricCard(margin, cardY, cardWidth, 'Espacios', stats.length, [59, 130, 246]);
+            drawMetricCard(margin + cardWidth + gap, cardY, cardWidth, 'Confirmadas', totalConfirmadas, [16, 185, 129]);
+            drawMetricCard(margin + (cardWidth + gap) * 2, cardY, cardWidth, 'Totales', totalReservas, [245, 158, 11]);
+            drawMetricCard(margin + (cardWidth + gap) * 3, cardY, cardWidth, 'Tasa', `${tasaConfirmacion}%`, [99, 102, 241]);
+            y += 30;
+
+            drawTable('Top 5 Espacios Mas Reservados', topSpaces, [22, 163, 74]);
+            drawTable('Top 5 Espacios Menos Reservados', bottomSpaces, [217, 119, 6]);
+
+            drawSectionTitle('Tendencia Mensual (Ultimos 6 Meses)', [14, 116, 144]);
+            if (!monthlyData.length) {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.text('Sin datos disponibles', margin + 2, y);
+                y += 8;
+            } else {
+                const maxValue = Math.max(...monthlyData.map((m) => m.reservas), 1);
+                const barAreaHeight = 34;
+                const chartTop = y;
+                const chartBottom = y + barAreaHeight;
+                const labelY = chartBottom + 5;
+                const barWidth = (contentWidth - 14) / monthlyData.length;
+
+                addPageIfNeeded(barAreaHeight + 16);
+
+                doc.setDrawColor(210, 217, 224);
+                doc.line(margin, chartBottom, margin + contentWidth, chartBottom);
+
+                monthlyData.forEach((item, idx) => {
+                    const normalized = maxValue > 0 ? item.reservas / maxValue : 0;
+                    const barHeight = Math.max(2, Math.round(normalized * 28));
+                    const x = margin + 4 + idx * barWidth;
+                    const barY = chartBottom - barHeight;
+
+                    doc.setFillColor(16, 185, 129);
+                    doc.roundedRect(x, barY, barWidth - 5, barHeight, 1, 1, 'F');
+
+                    doc.setTextColor(55, 65, 81);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.text(item.month, x, labelY);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(String(item.reservas), x + 1, barY - 1.5);
+                });
+
+                y += barAreaHeight + 14;
             }
 
-            // Agregar información adicional
-            const totalPages = pdf.getNumberOfPages();
+            // Footer
+            const totalPages = doc.internal.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i);
-                pdf.setFontSize(10);
-                pdf.setTextColor(128);
-                pdf.text(
-                    `Reporte General de Reservas - ${new Date().toLocaleDateString('es-ES')}`,
-                    pdf.internal.pageSize.getWidth() / 2,
-                    pdf.internal.pageSize.getHeight() - 5,
-                    { align: 'center' }
-                );
-                pdf.text(
-                    `Página ${i} de ${totalPages}`,
-                    pdf.internal.pageSize.getWidth() - 20,
-                    pdf.internal.pageSize.getHeight() - 5,
-                    { align: 'right' }
-                );
+                doc.setPage(i);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(120, 120, 120);
+                doc.text(`SERVIRE • Pagina ${i} de ${totalPages}`, margin, pageHeight - 6);
             }
 
-            pdf.save(`reportes-espacios-${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.save(`reportes-espacios-${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (err) {
             console.error('Error al descargar PDF:', err);
             alert('Error al descargar el PDF');

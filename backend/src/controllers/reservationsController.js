@@ -169,6 +169,7 @@ export const getAdminRequests = async (req, res) => {
     `;
 
         const result = await pool.query(query);
+        console.log(`✅ Admin requests: Se encontraron ${result.rows.length} solicitudes`);
 
         const requests = result.rows.map(row => {
             let status = 'pending';
@@ -195,7 +196,7 @@ export const getAdminRequests = async (req, res) => {
 
         res.json(requests);
     } catch (error) {
-        console.error(error);
+        console.error('❌ Error en getAdminRequests:', error);
         res.status(500).json({ error: 'Error al obtener panel de admin' });
     }
 };

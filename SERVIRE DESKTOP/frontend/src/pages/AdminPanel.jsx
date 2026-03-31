@@ -154,9 +154,12 @@ const AdminPanel = () => {
         setLoading(true);
         try {
             const data = await getAdminRequests();
+            console.log('✅ Datos recibidos del admin panel:', data);
+            console.log('📊 Total de solicitudes:', data ? data.length : 0);
             setRequests(data);
         } catch (error) {
-            console.error('Failed to fetch admin requests:', error);
+            console.error('❌ Error al obtener solicitudes:', error);
+            console.log('Error completo:', error);
         } finally {
             setLoading(false);
         }

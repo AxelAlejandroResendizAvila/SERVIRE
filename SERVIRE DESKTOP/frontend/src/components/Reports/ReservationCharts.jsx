@@ -28,6 +28,7 @@ const ReservationCharts = () => {
     const [topSpaces, setTopSpaces] = useState([]);
     const [bottomSpaces, setBottomSpaces] = useState([]);
     const [monthlyData, setMonthlyData] = useState([]);
+    const [generatingPdf, setGeneratingPdf] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -152,7 +153,55 @@ const ReservationCharts = () => {
     };
 
     const downloadPDF = async () => {
+        setGeneratingPdf(true);
         try {
+            // Si no hay datos, recargar primero
+            let currentStats = stats;
+            let currentTopSpaces = topSpaces;
+            let currentBottomSpaces = bottomSpaces;
+            let currentMonthlyData = monthlyData;
+
+            if (!currentStats || currentStats.length === 0) {
+                console.log('⚠️ No hay datos, recargando...');
+                const newStats = await getReservationStats();
+                const allRequests = await getAdminRequests();
+                
+                if (newStats && newStats.length > 0) {
+                    currentStats = newStats;
+                    currentTopSpaces = newStats.slice(0, 5);
+                    currentBottomSpaces = newStats.filter(s => s.confirmedCount > 0).slice(-5).reverse();
+                    if (allRequests && allRequests.length > 0) {
+                        // Generar datos mensuales
+                        const monthlyStats = {};
+                        const today = new Date();
+                        for (let i = 5; i >= 0; i--) {
+                            const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                            const key = date.toISOString().slice(0, 7);
+                            monthlyStats[key] = 0;
+                        }
+                        allRequests.forEach(r => {
+                            if (r.status === 'approved' && r.startDateRaw) {
+                                const month = r.startDateRaw.slice(0, 7);
+                                if (monthlyStats.hasOwnProperty(month)) {
+                                    monthlyStats[month]++;
+                                }
+                            }
+                        });
+                        currentMonthlyData = Object.entries(monthlyStats).map(([month, count]) => {
+                            const [year, monthNum] = month.split('-');
+                            const monthName = new Date(year, monthNum - 1).toLocaleString('es-ES', { month: 'short' });
+                            return {
+                                month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+                                reservas: count,
+                                fullMonth: month
+                            };
+                        });
+                    }
+                } else {
+                    throw new Error('No se pudieron cargar los datos para el PDF');
+                }
+            }
+
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -160,8 +209,8 @@ const ReservationCharts = () => {
             const contentWidth = pageWidth - margin * 2;
             let y = 12;
 
-            const totalReservas = stats.reduce((sum, s) => sum + s.totalCount, 0);
-            const totalConfirmadas = stats.reduce((sum, s) => sum + s.confirmedCount, 0);
+            const totalReservas = currentStats.reduce((sum, s) => sum + s.totalCount, 0);
+            const totalConfirmadas = currentStats.reduce((sum, s) => sum + s.confirmedCount, 0);
             const tasaConfirmacion = totalReservas > 0 ? Math.round((totalConfirmadas / totalReservas) * 100) : 0;
 
             const addPageIfNeeded = (neededHeight) => {
@@ -279,35 +328,35 @@ const ReservationCharts = () => {
             const gap = 4;
             const cardWidth = (contentWidth - gap * 3) / 4;
             const cardY = y;
-            drawMetricCard(margin, cardY, cardWidth, 'Espacios', stats.length, [59, 130, 246]);
+            drawMetricCard(margin, cardY, cardWidth, 'Espacios', currentStats.length, [59, 130, 246]);
             drawMetricCard(margin + cardWidth + gap, cardY, cardWidth, 'Confirmadas', totalConfirmadas, [16, 185, 129]);
             drawMetricCard(margin + (cardWidth + gap) * 2, cardY, cardWidth, 'Totales', totalReservas, [245, 158, 11]);
             drawMetricCard(margin + (cardWidth + gap) * 3, cardY, cardWidth, 'Tasa', `${tasaConfirmacion}%`, [99, 102, 241]);
             y += 30;
 
-            drawTable('Top 5 Espacios Mas Reservados', topSpaces, [22, 163, 74]);
-            drawTable('Top 5 Espacios Menos Reservados', bottomSpaces, [217, 119, 6]);
+            drawTable('Top 5 Espacios Mas Reservados', currentTopSpaces, [22, 163, 74]);
+            drawTable('Top 5 Espacios Menos Reservados', currentBottomSpaces, [217, 119, 6]);
 
             drawSectionTitle('Tendencia Mensual (Ultimos 6 Meses)', [14, 116, 144]);
-            if (!monthlyData.length) {
+            if (!currentMonthlyData.length) {
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(10);
                 doc.text('Sin datos disponibles', margin + 2, y);
                 y += 8;
             } else {
-                const maxValue = Math.max(...monthlyData.map((m) => m.reservas), 1);
+                const maxValue = Math.max(...currentMonthlyData.map((m) => m.reservas), 1);
                 const barAreaHeight = 34;
                 const chartTop = y;
                 const chartBottom = y + barAreaHeight;
                 const labelY = chartBottom + 5;
-                const barWidth = (contentWidth - 14) / monthlyData.length;
+                const barWidth = (contentWidth - 14) / currentMonthlyData.length;
 
                 addPageIfNeeded(barAreaHeight + 16);
 
                 doc.setDrawColor(210, 217, 224);
                 doc.line(margin, chartBottom, margin + contentWidth, chartBottom);
 
-                monthlyData.forEach((item, idx) => {
+                currentMonthlyData.forEach((item, idx) => {
                     const normalized = maxValue > 0 ? item.reservas / maxValue : 0;
                     const barHeight = Math.max(2, Math.round(normalized * 28));
                     const x = margin + 4 + idx * barWidth;
@@ -340,7 +389,9 @@ const ReservationCharts = () => {
             doc.save(`reportes-espacios-${new Date().toISOString().split('T')[0]}.pdf`);
         } catch (err) {
             console.error('Error:', err);
-            alert('Error al descargar el PDF');
+            alert('Error al descargar el PDF: ' + err.message);
+        } finally {
+            setGeneratingPdf(false);
         }
     };
 
@@ -394,10 +445,20 @@ const ReservationCharts = () => {
                     </button>
                     <button
                         onClick={downloadPDF}
-                        className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                        disabled={generatingPdf}
+                        className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <DownloadCloud size={18} />
-                        Descargar PDF
+                        {generatingPdf ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Generando...
+                            </>
+                        ) : (
+                            <>
+                                <DownloadCloud size={18} />
+                                Descargar PDF
+                            </>
+                        )}
                     </button>
                 </div>
 

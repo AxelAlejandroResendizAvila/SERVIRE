@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutGrid, ClipboardList, PlusSquare, Users, X } from 'lucide-react';
+import { LayoutGrid, ClipboardList, PlusSquare, Users, X, BarChart3 } from 'lucide-react';
 import logo from "../../assets/logo_icon.png";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -14,6 +14,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
     const adminItems = [
         { label: 'Usuarios', icon: Users, path: '/usuarios' },
+        { label: 'Reportes', icon: BarChart3, path: '/reportes' },
     ];
 
     const sidebarClasses = `

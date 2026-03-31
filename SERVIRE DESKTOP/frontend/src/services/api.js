@@ -220,3 +220,37 @@ export const updateUserRole = async (userId, newRole) => {
     if (!res.ok) throw new Error(data.error || 'Error al actualizar rol');
     return data;
 };
+
+// Función para obtener estadísticas de reservas por espacio
+export const getReservationStats = async () => {
+    try {
+        const [spaces, reservations] = await Promise.all([
+            getSpaces(),
+            getAdminRequests()
+        ]);
+
+        // Contar reservas confirmadas por espacio
+        const stats = spaces.map(space => {
+            const confirmedReservations = reservations.filter(
+                r => r.spaceId === space.id_espacio && r.status === 'approved'
+            ).length;
+            
+            const totalReservations = reservations.filter(
+                r => r.spaceId === space.id_espacio
+            ).length;
+
+            return {
+                spaceId: space.id_espacio,
+                spaceName: space.nombre,
+                confirmedCount: confirmedReservations,
+                totalCount: totalReservations,
+                building: space.id_edificio
+            };
+        });
+
+        return stats.sort((a, b) => b.confirmedCount - a.confirmedCount);
+    } catch (e) {
+        console.error('Error al obtener estadísticas:', e);
+        return [];
+    }
+};

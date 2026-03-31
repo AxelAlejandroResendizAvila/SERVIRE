@@ -9,6 +9,7 @@ import EditSpace from './pages/EditSpace';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import UserManagement from './pages/UserManagement';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -53,6 +54,13 @@ function App() {
             <ProtectedRoute adminOnly={true}>
               <Layout>
                 <UserManagement />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/reportes" element={
+            <ProtectedRoute adminOnly={true}>
+              <Layout>
+                <Reports />
               </Layout>
             </ProtectedRoute>
           } />

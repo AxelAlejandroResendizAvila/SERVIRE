@@ -100,60 +100,89 @@ const ReservationCharts = () => {
     const downloadPDF = async () => {
         try {
             const element = document.getElementById('reports-container');
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: true
-            });
+            if (!element) {
+                alert('No se encontró el contenedor de reportes');
+                return;
+            }
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4'
-            });
+            // Mostrar mensaje de carga
+            const originalHTML = element.innerHTML;
+            
+            try {
+                // Usar html2canvas con opciones mejoradas
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    timeout: 10000,
+                    windowHeight: element.scrollHeight
+                });
 
-            const imgWidth = 280;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 10;
+                const imgData = canvas.toDataURL('image/png', 0.95);
+                
+                // Crear PDF con dimensiones apropiadas
+                const pdfWidth = 297;  // A4 landscape
+                const pdfHeight = 210;
+                const imgWidth = pdfWidth - 20;  // Márgenes
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            // Primera página
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pdf.internal.pageSize.getHeight() - 20;
+                const pdf = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
 
-            // Páginas adicionales si es necesario
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight + 10;
-                pdf.addPage();
+                let heightLeft = imgHeight;
+                let position = 10;
+
+                // Primera página
                 pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
-            }
+                heightLeft -= pdfHeight - 20;
 
-            // Agregar información adicional
-            const totalPages = pdf.getNumberOfPages();
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i);
-                pdf.setFontSize(10);
-                pdf.setTextColor(128);
-                pdf.text(
-                    `Reporte General de Reservas - ${new Date().toLocaleDateString('es-ES')}`,
-                    pdf.internal.pageSize.getWidth() / 2,
-                    pdf.internal.pageSize.getHeight() - 5,
-                    { align: 'center' }
-                );
-                pdf.text(
-                    `Página ${i} de ${totalPages}`,
-                    pdf.internal.pageSize.getWidth() - 20,
-                    pdf.internal.pageSize.getHeight() - 5,
-                    { align: 'right' }
-                );
-            }
+                // Páginas adicionales si es necesario
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                    heightLeft -= pdfHeight - 20;
+                }
 
-            pdf.save(`reportes-espacios-${new Date().toISOString().split('T')[0]}.pdf`);
+                // Agregar información adicional a cada página
+                const totalPages = pdf.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(150);
+                    
+                    const fecha = new Date().toLocaleDateString('es-ES');
+                    pdf.text(
+                        `Reporte de Espacios - ${fecha}`,
+                        pdfWidth / 2,
+                        pdfHeight - 8,
+                        { align: 'center' }
+                    );
+                    
+                    pdf.text(
+                        `Pág ${i}/${totalPages}`,
+                        pdfWidth - 15,
+                        pdfHeight - 8,
+                        { align: 'right' }
+                    );
+                }
+
+                // Descargar con nombre con fecha
+                const filename = `reportes-${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(filename);
+            } catch (canvasErr) {
+                console.error('Error capturando canvas:', canvasErr);
+                alert('Error al procesar el reporte. Intenta nuevamente.');
+            }
         } catch (err) {
             console.error('Error al descargar PDF:', err);
-            alert('Error al descargar el PDF');
+            alert('Error al descargar el PDF: ' + err.message);
         }
     };
 

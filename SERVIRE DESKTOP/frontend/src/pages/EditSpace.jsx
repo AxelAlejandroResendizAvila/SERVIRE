@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Users, Tag, FileText, CheckCircle, AlertCircle, ArrowLeft, Save, ImagePlus, X, Trash2 } from 'lucide-react';
 import Button from '../components/UI/Button';
 import Card from '../components/UI/Card';
-import { updateSpace, getCategories, getEdificios, getSpaceDetail, deleteGalleryImage } from '../services/api';
+import { updateSpace, getCategories, getEdificios, getSpaceDetail, deleteGalleryImage, API_URL } from '../services/api';
 
 const EditSpace = () => {
     const navigate = useNavigate();
@@ -54,7 +54,7 @@ const EditSpace = () => {
                     id_edificio: space.buildingId?.toString() || ''
                 });
                 if (space.image) {
-                    setMainImagePreview(`http://localhost:3000${space.image}`);
+                    setMainImagePreview(`${API_URL}${space.image}`);
                 }
                 setExistingGallery(space.gallery || []);
             } catch (err) {
@@ -206,7 +206,7 @@ const EditSpace = () => {
                         <div className="flex flex-wrap gap-3">
                             {existingGallery.map(img => (
                                 <div key={img.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-border group">
-                                    <img src={`http://localhost:3000${img.url}`} alt="Gallery" className="w-full h-full object-cover" />
+                                    <img src={`${API_URL}${img.url}`} alt="Gallery" className="w-full h-full object-cover" />
                                     <button type="button" onClick={() => removeExistingGalleryImage(img.id)} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Trash2 size={16} />
                                     </button>

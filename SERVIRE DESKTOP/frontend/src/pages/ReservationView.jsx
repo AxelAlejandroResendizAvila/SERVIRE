@@ -5,7 +5,7 @@ import Card from '../components/UI/Card';
 import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Modal from '../components/UI/Modal';
-import { getSpaces, deleteSpace, freeSpace, getSpaceDetail, getCategories, getEdificios } from '../services/api';
+import { getSpaces, deleteSpace, freeSpace, getSpaceDetail, getCategories, getEdificios, API_URL } from '../services/api';
 
 const ReservationView = () => {
     const navigate = useNavigate();
@@ -224,7 +224,7 @@ const ReservationView = () => {
                             {space.image ? (
                                 <div className="h-40 overflow-hidden">
                                     <img
-                                        src={`http://localhost:3000${space.image}`}
+                                        src={`${API_URL}${space.image}`}
                                         alt={space.name}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
@@ -364,7 +364,7 @@ const ReservationView = () => {
                                                     className="relative h-28 w-40 shrink-0 rounded-lg overflow-hidden border border-border cursor-pointer group snap-start"
                                                 >
                                                     <img
-                                                        src={`http://localhost:3000${imgUrl}`}
+                                                        src={`${API_URL}${imgUrl}`}
                                                         alt={`Espacio ${idx}`}
                                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                     />
@@ -472,7 +472,7 @@ const ReservationView = () => {
                     </div>
 
                     <img
-                        src={`http://localhost:3000${lightbox.images[lightbox.currentIndex]}`}
+                        src={`${API_URL}${lightbox.images[lightbox.currentIndex]}`}
                         alt="Espacio expandido"
                         className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
                         onClick={(e) => e.stopPropagation()} // Prevent close when clicking image

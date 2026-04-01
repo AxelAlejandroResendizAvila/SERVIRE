@@ -197,8 +197,31 @@ pnpm dev
 ## License
 
 Pending selection by project owner (recommended: MIT).
-![1000125468](https://github.com/user-attachments/assets/590f30c8-3e5b-4b2a-9877-5e77a1dc6026)
-![1000125464](https://github.com/user-attachments/assets/a8e0afb0-737f-4676-99a0-06bd829a542a)
-![1000125466](https://github.com/user-attachments/assets/3777a2aa-cc5b-4cc0-8a88-6c66bfb8e591)
-![1000125470](https://github.com/user-attachments/assets/9d9b2916-829a-4a5b-bef0-2361f05d7539)
-![1000125470](https://github.com/user-attachments/assets/b96663f2-fbea-40ac-83c4-827a64248d54)
+
+## Mobile App Screens (ES/EN)
+
+ES: Vista rapida de pantallas principales de la app movil.
+EN: Quick preview of key mobile app screens.
+
+<table>
+    <tr>
+        <td align="center">
+            <b>Main / Inicio</b><br/>
+            <img src="https://github.com/user-attachments/assets/a8e0afb0-737f-4676-99a0-06bd829a542a" alt="Main screen" width="220"/>
+        </td>
+        <td align="center">
+            <b>My Reservations / Mis Reservas</b><br/>
+            <img src="https://github.com/user-attachments/assets/590f30c8-3e5b-4b2a-9877-5e77a1dc6026" alt="My reservations screen" width="220"/>
+        </td>
+    </tr>
+    <tr>
+        <td align="center">
+            <b>Spaces / Espacios</b><br/>
+            <img src="https://github.com/user-attachments/assets/3777a2aa-cc5b-4cc0-8a88-6c66bfb8e591" alt="Spaces screen" width="220"/>
+        </td>
+        <td align="center">
+            <b>Account / Cuenta</b><br/>
+            <img src="https://github.com/user-attachments/assets/9d9b2916-829a-4a5b-bef0-2361f05d7539" alt="Account screen" width="220"/>
+        </td>
+    </tr>
+</table>

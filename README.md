@@ -2,7 +2,17 @@
 
 ES: Plataforma full stack para gestion de espacios y reservas con cliente web, cliente movil y API REST.
 EN: Full stack platform for space booking and management with a web client, mobile client, and REST API.
+**Demo access:**
+Use any email from the demo dataset and password:
 
+```
+Password: 123456
+```
+
+Example users:
+
+* [admin@servire.com](mailto:admin@servire.com)
+  
 ## Recruiter Snapshot (ES/EN)
 
 - ES: Proyecto ideal para perfil Intern TI con experiencia practica en arquitectura cloud, API design y clientes multiplataforma.

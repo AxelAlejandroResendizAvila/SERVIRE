@@ -1,45 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Award, Zap } from 'lucide-react';
-import { getReservationStats, getAdminRequests } from '../../services/api';
+import {
+    TrendingUp,
+    TrendingDown,
+    Award,
+    Zap,
+    Building2,
+    CalendarDays,
+    CheckCircle2,
+    Activity,
+    AlertTriangle,
+    Lightbulb,
+    ChevronRight
+} from 'lucide-react';
+import { getReservationStats } from '../../services/api';
 
-const StatisticCard = ({ icon: Icon, label, value, trend, background, textColor }) => {
+// Tarjeta de estadística: Fondo blanco, bordes sutiles, íconos corporativos
+const StatisticCard = ({ icon: Icon, label, value, trend, iconBgColor, iconTextColor }) => {
     return (
-        <div className={`${background} rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:scale-105 transition-transform`}>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
-                <div className="text-3xl">{Icon}</div>
-                {trend && (
-                    <div className={`flex items-center gap-1 text-sm font-semibold ${trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {trend > 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                <div className={`p-3 rounded-lg ${iconBgColor} ${iconTextColor}`}>
+                    <Icon size={24} strokeWidth={2} />
+                </div>
+                {trend !== undefined && trend !== null && (
+                    <div className={`flex items-center gap-1 text-sm font-semibold ${trend >= 0 ? 'text-teal-600' : 'text-red-500'}`}>
+                        {trend >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                         {Math.abs(trend)}%
                     </div>
                 )}
             </div>
-            <p className="text-gray-600 text-sm font-medium mb-1">{label}</p>
-            <p className={`text-4xl font-bold ${textColor}`}>{value}</p>
+            <p className="text-gray-500 text-sm font-medium mb-1">{label}</p>
+            <p className="text-3xl font-bold text-slate-800">{value}</p>
         </div>
     );
 };
 
 const ReportDashboard = () => {
-    const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState({
         totalSpaces: 0,
         totalReservations: 0,
         confirmedReservations: 0,
         approvalRate: 0,
-        mostPopularSpace: '',
-        leastPopularSpace: ''
+        mostPopularSpace: 'Sin datos suficientes',
+        leastPopularSpace: 'Sin datos suficientes'
     });
-
-    // Mock data de ejemplo
-    const mockStats = [
-        { spaceId: 1, spaceName: 'Auditorio Principal', confirmedCount: 12, totalCount: 15 },
-        { spaceId: 2, spaceName: 'Sala de Reuniones', confirmedCount: 9, totalCount: 11 },
-        { spaceId: 3, spaceName: 'Cafetería', confirmedCount: 7, totalCount: 8 },
-        { spaceId: 4, spaceName: 'Oficina 101', confirmedCount: 5, totalCount: 6 },
-        { spaceId: 5, spaceName: 'Laboratorio', confirmedCount: 3, totalCount: 4 },
-    ];
 
     useEffect(() => {
         loadData();
@@ -48,49 +53,48 @@ const ReportDashboard = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            let statsData = await getReservationStats();
-            let allRequests = await getAdminRequests();
+            // Traemos los datos REALES del backend
+            const statsData = await getReservationStats() || [];
 
-            // Si no hay datos, usar ejemplo
-            if (!statsData || statsData.length === 0) {
-                statsData = mockStats;
-            }
-            if (!allRequests || allRequests.length === 0) {
-                allRequests = [
-                    { status: 'approved' }, { status: 'approved' }, { status: 'approved' },
-                    { status: 'pending' }, { status: 'pending' }
-                ];
-            }
+            // 1. Total de espacios registrados
+            const totalSpaces = statsData.length;
 
-            setStats(statsData);
+            // 2. Sumamos todas las solicitudes históricas
+            const totalReservations = statsData.reduce((sum, space) => sum + Number(space.totalCount || 0), 0);
 
-            // Calcular resumen
-            const totalReservations = allRequests.length;
-            const confirmedCount = allRequests.filter(r => r.status === 'approved').length;
-            const topSpace = statsData.length > 0 ? statsData[0].spaceName : 'Sin datos';
-            const bottomSpace = statsData.length > 0
-                ? statsData.filter(s => s.confirmedCount > 0).pop()?.spaceName || 'Sin datos'
-                : 'Sin datos';
+            // 3. Sumamos solo las aprobadas/completadas
+            const confirmedReservations = statsData.reduce((sum, space) => sum + Number(space.confirmedCount || 0), 0);
 
+            // 4. Calculamos la tasa de efectividad general
+            const approvalRate = totalReservations > 0
+                ? Math.round((confirmedReservations / totalReservations) * 100)
+                : 0;
+
+            // 5. El más popular (Debe tener al menos 1 reserva confirmada para ser popular)
+            const topSpace = totalSpaces > 0 && statsData[0].confirmedCount > 0
+                ? statsData[0].spaceName
+                : 'Sin datos suficientes';
+
+            // 6. El menos popular (SOLO se calcula si hay al menos una reserva en todo el sistema)
+            const bottomSpace = totalSpaces > 0 && totalReservations > 0
+                ? statsData[totalSpaces - 1].spaceName
+                : 'Sin datos suficientes';
+
+            // Actualizamos el estado con la matemática real
             setSummary({
-                totalSpaces: statsData.length,
+                totalSpaces,
                 totalReservations,
-                confirmedReservations: confirmedCount,
-                approvalRate: totalReservations > 0 ? Math.round((confirmedCount / totalReservations) * 100) : 0,
+                confirmedReservations,
+                approvalRate,
                 mostPopularSpace: topSpace,
                 leastPopularSpace: bottomSpace
             });
+
         } catch (err) {
-            console.error('Error:', err);
-            // Usar datos de ejemplo si falla
-            setStats(mockStats);
+            console.error('Error cargando estadísticas reales:', err);
             setSummary({
-                totalSpaces: mockStats.length,
-                totalReservations: 48,
-                confirmedReservations: 36,
-                approvalRate: 75,
-                mostPopularSpace: 'Auditorio Principal',
-                leastPopularSpace: 'Laboratorio'
+                totalSpaces: 0, totalReservations: 0, confirmedReservations: 0, approvalRate: 0,
+                mostPopularSpace: 'Error de conexión', leastPopularSpace: 'Error de conexión'
             });
         } finally {
             setLoading(false);
@@ -99,90 +103,104 @@ const ReportDashboard = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center p-8 min-h-[40vh]">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-
-            {/*borrado icono dahs*/}
-
-            <div>
-                <h2 className="text-3xl font-bold text-secondary mb-2">Dashboard de Estadísticas</h2>
-                <p className="text-gray-600">Resumen rápido del estado de los espacios y reservas</p>
+            {/* Header Limpio */}
+            <div className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-800 mb-1">Dashboard de Estadísticas</h2>
+                <p className="text-gray-500 text-sm">Resumen general en tiempo real del estado de los espacios y reservas</p>
             </div>
 
             {/* Grid de Estadísticas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatisticCard
-                    icon="🏢"
+                    icon={Building2}
                     label="Total de Espacios"
                     value={summary.totalSpaces}
-                    background="bg-gradient-to-br from-blue-500 to-blue-600"
-                    textColor="text-white"
+                    iconBgColor="bg-slate-100"
+                    iconTextColor="text-slate-700"
                 />
                 <StatisticCard
-                    icon="📅"
+                    icon={CalendarDays}
                     label="Total de Reservas"
                     value={summary.totalReservations}
-                    background="bg-gradient-to-br from-purple-500 to-purple-600"
-                    textColor="text-white"
+                    iconBgColor="bg-blue-50"
+                    iconTextColor="text-blue-600"
                 />
                 <StatisticCard
-                    icon="✅"
+                    icon={CheckCircle2}
                     label="Reservas Confirmadas"
                     value={summary.confirmedReservations}
-                    background="bg-gradient-to-br from-green-500 to-green-600"
-                    textColor="text-white"
+                    iconBgColor="bg-teal-50"
+                    iconTextColor="text-teal-600"
                 />
                 <StatisticCard
-                    icon="📈"
+                    icon={Activity}
                     label="Tasa de Confirmación"
                     value={`${summary.approvalRate}%`}
-                    background="bg-gradient-to-br from-orange-500 to-orange-600"
-                    textColor="text-white"
+                    iconBgColor="bg-indigo-50"
+                    iconTextColor="text-indigo-600"
                 />
             </div>
 
             {/* Información Destacada */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-l-4 border-yellow-500 rounded-lg p-6 shadow-md">
-                    <div className="flex items-start gap-4">
-                        <div className="text-4xl">🏆</div>
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-secondary mb-2">Espacio Más Popular</h3>
-                            <p className="text-gray-700 text-xl font-semibold">{summary.mostPopularSpace}</p>
-                            <p className="text-green-600 text-sm mt-2">Mayor número de reservas confirmadas</p>
-                        </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm flex items-start gap-5 hover:shadow-md transition-shadow">
+                    <div className="p-3 bg-teal-50 rounded-lg">
+                        <Award className="text-teal-600" size={28} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Espacio Más Solicitado</h3>
+                        <p className="text-xl font-bold text-slate-800">{summary.mostPopularSpace}</p>
+                        <p className="text-teal-600 text-sm mt-2 font-medium flex items-center gap-1">
+                            <TrendingUp size={14} /> Mayor uso por estudiantes
+                        </p>
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-red-50 to-red-100 border-l-4 border-red-500 rounded-lg p-6 shadow-md">
-                    <div className="flex items-start gap-4">
-                        <div className="text-4xl">⚠️</div>
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-secondary mb-2">Espacio Menos Popular</h3>
-                            <p className="text-gray-700 text-xl font-semibold">{summary.leastPopularSpace}</p>
-                            <p className="text-orange-600 text-sm mt-2">Considera estrategias de promoción</p>
-                        </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm flex items-start gap-5 hover:shadow-md transition-shadow">
+                    <div className="p-3 bg-orange-50 rounded-lg">
+                        <AlertTriangle className="text-orange-500" size={28} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Espacio Menos Solicitado</h3>
+                        <p className="text-xl font-bold text-slate-800">{summary.leastPopularSpace}</p>
+                        <p className="text-orange-600 text-sm mt-2 font-medium flex items-center gap-1">
+                            <TrendingDown size={14} /> Revisar estado o equipamiento
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* Recomendaciones */}
-            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 shadow-md">
+            <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 text-white mt-8">
                 <div className="flex items-start gap-4">
-                    <Zap className="text-blue-600 mt-1" size={24} />
-                    <div>
-                        <h3 className="text-lg font-bold text-secondary mb-2">💡 Recomendaciones</h3>
-                        <ul className="space-y-2 text-gray-700">
-                            <li>✓ La tasa de confirmación es del {summary.approvalRate}% - {summary.approvalRate >= 70 ? 'Excelente' : summary.approvalRate >= 50 ? 'Buena' : 'Necesita mejorar'}</li>
-                            <li>✓ Estás administrando {summary.totalSpaces} espacios con {summary.totalReservations} solicitudes totales</li>
-                            <li>✓ Considera promocionar el espacio "{summary.leastPopularSpace}" para aumentar su ocupación</li>
+                    <div className="p-2 bg-slate-700 rounded-lg mt-1">
+                        <Lightbulb className="text-teal-400" size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-bold mb-4 text-slate-100">Observaciones del Sistema</h3>
+                        <ul className="space-y-3">
+                            <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                <ChevronRight size={16} className="text-teal-500 flex-shrink-0" />
+                                <span>La tasa de confirmación histórica es del <strong>{summary.approvalRate}%</strong> ({summary.approvalRate >= 70 ? 'Excelente' : summary.approvalRate >= 50 ? 'Estable' : 'Baja'}).</span>
+                            </li>
+                            <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                <ChevronRight size={16} className="text-teal-500 flex-shrink-0" />
+                                <span>Actualmente se administran <strong>{summary.totalSpaces}</strong> espacios con un histórico de <strong>{summary.totalReservations}</strong> solicitudes.</span>
+                            </li>
+                            {summary.leastPopularSpace !== 'Sin datos suficientes' && (
+                                <li className="flex items-center gap-3 text-slate-300 text-sm">
+                                    <ChevronRight size={16} className="text-teal-500 flex-shrink-0" />
+                                    <span>El espacio <strong>"{summary.leastPopularSpace}"</strong> presenta baja demanda. Verifica si requiere mantenimiento o mejor equipo para la comunidad.</span>
+                                </li>
+                            )}
                         </ul>
                     </div>
                 </div>

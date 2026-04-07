@@ -355,3 +355,29 @@ export const freeSpace = async (req, res) => {
         res.status(500).json({ error: 'Error al liberar el espacio' });
     }
 };
+
+export const getReservationStats = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                e.id_espacio AS "spaceId", 
+                e.nombre AS "spaceName",
+                -- El ::int convierte el resultado a número para que las gráficas de React no fallen
+                COUNT(r.id_reserva)::int AS "totalCount",
+                COALESCE(SUM(CASE WHEN r.estado IN ('confirmada', 'completada', 'terminada') THEN 1 ELSE 0 END), 0)::int AS "confirmedCount"
+            FROM espacios e
+            LEFT JOIN reservas r ON e.id_espacio = r.id_espacio
+            GROUP BY e.id_espacio, e.nombre
+            ORDER BY "confirmedCount" DESC;
+        `;
+
+        const result = await pool.query(query);
+        console.log(`Stats: Se enviaron estadísticas de ${result.rows.length} espacios`);
+
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error('Error en getReservationStats:', error);
+        res.status(500).json({ error: 'Error al obtener estadísticas de los espacios' });
+    }
+};

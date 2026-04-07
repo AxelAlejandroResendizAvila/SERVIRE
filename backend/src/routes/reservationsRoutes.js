@@ -7,6 +7,7 @@ const router = express.Router();
 // Rutas específicas primero
 router.get('/mis-reservas', authMiddleware, reservationsController.getMyReservations);
 router.get('/admin', authMiddleware, adminMiddleware, reservationsController.getAdminRequests);
+router.get('/stats', authMiddleware, adminMiddleware, reservationsController.getReservationStats);
 
 // Rutas con parámetro :id
 router.post('/', authMiddleware, reservationsController.createReservation);

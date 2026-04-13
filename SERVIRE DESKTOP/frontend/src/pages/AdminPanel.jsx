@@ -444,11 +444,20 @@ const AdminPanel = () => {
                                     <tr>
                                         <td colSpan="7" className="py-12 text-center text-gray-400">
                                             <Clock size={40} className="mx-auto mb-3 opacity-50" />
-                                            <p className="font-medium">
+                                            <p className="font-medium text-gray-500">
                                                 {activeTab === 'pending' ? 'No hay solicitudes pendientes' :
                                                     activeTab === 'approved' ? 'No hay reservas activas' :
-                                                        'No hay historial aún'}
+                                                    activeTab === 'history' ? (
+                                                        historyFilter === 'all'
+                                                            ? 'No hay registros históricos aún'
+                                                            : `No hay reservas ${historyFilter === 'today' ? 'de hoy' : historyFilter === 'past' ? 'pasadas' : 'futuras'} en el historial`
+                                                    ) : 'Sin resultados'}
                                             </p>
+                                            {activeTab === 'history' && historyFilter === 'all' && (
+                                                <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+                                                    Las reservas completadas y canceladas aparecerán aquí automáticamente.
+                                                </p>
+                                            )}
                                         </td>
                                     </tr>
                                 )}

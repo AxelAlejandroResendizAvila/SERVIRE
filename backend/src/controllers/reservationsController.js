@@ -147,6 +147,7 @@ export const getAdminRequests = async (req, res) => {
         CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         TO_CHAR(r.fecha_creacion, 'YYYY-MM-DD HH24:MI') as "createdAt",
         r.estado,
+        r.motivo_estado as "motivoEstado",
         r.fecha_inicio as "startDateRaw",
         r.fecha_fin as "endDateRaw",
         (
@@ -190,6 +191,7 @@ export const getAdminRequests = async (req, res) => {
                 endDateRaw: row.endDateRaw,
                 createdAt: row.createdAt,
                 status,
+                motivo_rechazo: row.motivoEstado || null,
                 queuePosition: row.estado === 'pendiente' ? parseInt(row.queuePosition) : null
             };
         });

@@ -20,6 +20,11 @@ Example users:
 - ES: Stack productivo: Neon + Render + Vercel + Cloudinary.
 - EN: Production-ready stack: Neon + Render + Vercel + Cloudinary.
 
+## Demo Credentials (Admin)
+
+- Email: admin@servire.com
+- Password: 123456
+
 ## Architecture
 
 ```mermaid

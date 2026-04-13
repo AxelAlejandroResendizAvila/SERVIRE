@@ -145,6 +145,7 @@ const AdminPanel = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [activeTab, setActiveTab] = useState('pending');
+    const [historyFilter, setHistoryFilter] = useState('all');
 
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
@@ -205,21 +206,50 @@ const AdminPanel = () => {
         }
     };
 
+    // Utilidad para obtener timestamp de fecha de inicio de la reserva desde el campo date (YYYY-MM-DD) y time (HH:MM ...)
+    const getStartTimestamp = (req) => {
+        try {
+            const [startTimeStr] = req.time.split(' - ');
+            return constructUTCDate(req.date, startTimeStr);
+        } catch { return 0; }
+    };
+
     const filteredRequests = requests.filter(req => {
         let matchesTab = true;
         
         if (activeTab === 'pending') {
             matchesTab = req.status === 'pending';
         } else if (activeTab === 'approved') {
-            // Las reservas 'approved' expiradas NO van en activas
             matchesTab = req.status === 'approved' && !isReservationExpired(req.endDateRaw, req.date, req.time);
         } else if (activeTab === 'history') {
-            // El historial incluye declined, completed, y approved expiradas
-            matchesTab = req.status === 'declined' || req.status === 'completed' || 
+            const isInHistory = req.status === 'declined' || req.status === 'completed' || 
                         (req.status === 'approved' && isReservationExpired(req.endDateRaw, req.date, req.time));
+            if (!isInHistory) return false;
+
+            if (historyFilter !== 'all') {
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date();
+                todayEnd.setHours(23, 59, 59, 999);
+                const resStart = getStartTimestamp(req);
+
+                if (historyFilter === 'today') {
+                    matchesTab = resStart >= todayStart.getTime() && resStart <= todayEnd.getTime();
+                } else if (historyFilter === 'past') {
+                    matchesTab = resStart < todayStart.getTime();
+                } else if (historyFilter === 'future') {
+                    matchesTab = resStart > todayEnd.getTime();
+                }
+            }
         }
 
         return matchesTab;
+    }).sort((a, b) => {
+        // En historial, ordenar de más reciente a más antiguo por fecha de inicio
+        if (activeTab === 'history') {
+            return getStartTimestamp(b) - getStartTimestamp(a);
+        }
+        return 0;
     });
 
     const pendingCount = requests.filter(r => r.status === 'pending').length;
@@ -251,7 +281,7 @@ const AdminPanel = () => {
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+                        onClick={() => { setActiveTab(tab.key); setHistoryFilter('all'); }}
                         className={`px-4 py-2 rounded-button text-sm font-medium transition-all ${activeTab === tab.key
                             ? 'bg-white text-secondary shadow-sm'
                             : 'text-gray-500 hover:text-secondary'
@@ -267,6 +297,31 @@ const AdminPanel = () => {
                     </button>
                 ))}
             </div>
+
+            {/* Filtros del historial */}
+            {activeTab === 'history' && (
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500 font-medium">Filtrar por fecha:</span>
+                    {[
+                        { key: 'all',    label: 'Todas' },
+                        { key: 'today',  label: 'Hoy' },
+                        { key: 'past',   label: 'Pasadas' },
+                        { key: 'future', label: 'Futuras' },
+                    ].map(f => (
+                        <button
+                            key={f.key}
+                            onClick={() => setHistoryFilter(f.key)}
+                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                historyFilter === f.key
+                                    ? 'bg-primary text-white border-primary'
+                                    : 'bg-white text-gray-500 border-border hover:border-primary hover:text-primary'
+                            }`}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {loading ? (
                 <div className="flex justify-center items-center h-64">

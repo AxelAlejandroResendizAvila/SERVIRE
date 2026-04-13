@@ -216,19 +216,28 @@ export const approveReservation = async (req, res) => {
             return res.status(400).json({ error: 'Solo se pueden aprobar reservas pendientes' });
         }
 
-        const activeReservation = await pool.query(
-            "SELECT id_reserva FROM reservas WHERE id_espacio = $1 AND estado = 'confirmada' LIMIT 1",
-            [reserva.id_espacio]
-        );
+        // Verificar conflicto de horario real con otras reservas confirmadas
+        const conflictQuery = `
+            SELECT id_reserva FROM reservas
+            WHERE id_espacio = $1
+            AND id_reserva != $2
+            AND estado = 'confirmada'
+            AND (fecha_inicio < $4 AND fecha_fin > $3)
+        `;
+        const conflictResult = await pool.query(conflictQuery, [
+            reserva.id_espacio,
+            reserva.id_reserva,
+            reserva.fecha_inicio,
+            reserva.fecha_fin
+        ]);
 
-        if (activeReservation.rows.length > 0) {
+        if (conflictResult.rows.length > 0) {
             return res.status(400).json({
-                error: 'Este espacio ya tiene una reserva activa. Libera el espacio primero.'
+                error: 'Este espacio ya tiene una reserva confirmada que se solapa con este horario.'
             });
         }
 
         await pool.query("UPDATE reservas SET estado = 'confirmada' WHERE id_reserva = $1", [id]);
-        await pool.query('UPDATE espacios SET disponible = false WHERE id_espacio = $1', [reserva.id_espacio]);
 
         res.json({ success: true, message: 'Reserva aprobada exitosamente' });
     } catch (error) {
@@ -252,17 +261,6 @@ export const declineReservation = async (req, res) => {
             "UPDATE reservas SET estado = 'cancelada', motivo_estado = $1 WHERE id_reserva = $2", 
             [motivo_estado || 'Cancelada por el administrador', id]
         );
-
-        if (reserva.estado === 'confirmada') {
-            const nextInLine = await pool.query(
-                "SELECT id_reserva FROM reservas WHERE id_espacio = $1 AND estado = 'pendiente' ORDER BY fecha_creacion ASC LIMIT 1",
-                [reserva.id_espacio]
-            );
-
-            if (nextInLine.rows.length === 0) {
-                await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [reserva.id_espacio]);
-            }
-        }
 
         res.json({ success: true, message: 'Reserva rechazada' });
     } catch (error) {
@@ -310,7 +308,6 @@ export const cancelUserReservation = async (req, res) => {
                 "UPDATE reservas SET estado = 'completada' WHERE id_reserva = $1",
                 [id]
             );
-            await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [reserva.id_espacio]);
             
             // Ahora eliminarla del historial
             await pool.query("DELETE FROM reservas WHERE id_reserva = $1", [id]);
@@ -333,8 +330,6 @@ export const freeSpace = async (req, res) => {
             "UPDATE reservas SET estado = 'completada' WHERE id_espacio = $1 AND estado = 'confirmada'",
             [spaceId]
         );
-
-        await pool.query('UPDATE espacios SET disponible = true WHERE id_espacio = $1', [spaceId]);
 
         const waitlistResult = await pool.query(
             "SELECT COUNT(*) as count FROM reservas WHERE id_espacio = $1 AND estado = 'pendiente'",

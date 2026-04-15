@@ -18,15 +18,26 @@ const parseUTCDate = (isoString) => {
 };
 
 // Función para construir fecha UTC desde date (YYYY-MM-DD) y time (HH:MM)
-const constructUTCDate = (dateStr, timeStr) => {
+// Maneja correctamente reservas que cruzan medianoche
+const constructUTCDate = (dateStr, timeStr, startTimeStr = null) => {
     if (!dateStr || !timeStr) return 0;
     try {
         const [year, month, day] = dateStr.split('-');
         const [hours, minutes] = timeStr.split(':');
+        
+        // Si se proporciona startTimeStr, verificar si cruzamos medianoche
+        let finalDay = parseInt(day, 10);
+        if (startTimeStr) {
+            const [startHrs] = startTimeStr.split(':');
+            if (parseInt(hours, 10) < parseInt(startHrs, 10)) {
+                finalDay += 1; // Cruzamos medianoche
+            }
+        }
+        
         return Date.UTC(
             parseInt(year, 10),
             parseInt(month, 10) - 1,
-            parseInt(day, 10),
+            finalDay,
             parseInt(hours, 10),
             parseInt(minutes, 10)
         );
@@ -40,8 +51,8 @@ const isReservationExpired = (endDateRaw, date, time) => {
     let endTime = 0;
     
     if (date && time) {
-        const [, endTimeStr] = time.split(' - ');
-        endTime = constructUTCDate(date, endTimeStr);
+        const [startTimeStr, endTimeStr] = time.split(' - ');
+        endTime = constructUTCDate(date, endTimeStr, startTimeStr);
     } else {
         endTime = parseUTCDate(endDateRaw);
     }
@@ -61,7 +72,7 @@ const CountdownTimer = ({ startDateRaw, endDateRaw, date, time }) => {
             if (date && time) {
                 const [startTimeStr, endTimeStr] = time.split(' - ');
                 start = constructUTCDate(date, startTimeStr);
-                end = constructUTCDate(date, endTimeStr);
+                end = constructUTCDate(date, endTimeStr, startTimeStr);
             } else {
                 start = parseUTCDate(startDateRaw);
                 end = parseUTCDate(endDateRaw);

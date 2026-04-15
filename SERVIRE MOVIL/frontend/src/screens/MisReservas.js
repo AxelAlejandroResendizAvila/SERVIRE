@@ -14,11 +14,19 @@ const isReservationPast = (date, time) => {
     try {
         const timeParts = time.split(' - ');
         if (timeParts.length < 2) return false;
+        const startTimeStr = timeParts[0];
         const endTimeStr = timeParts[1];
+        const [startHrs, startMins] = startTimeStr.split(':');
         const [endHrs, endMins] = endTimeStr.split(':');
         const [year, month, day] = date.split('-');
         
-        const endMs = Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), parseInt(endHrs, 10), parseInt(endMins, 10));
+        // Si la hora de fin es menor que la hora de inicio, significa que cruza medianoche
+        let endDay = parseInt(day, 10);
+        if (parseInt(endHrs, 10) < parseInt(startHrs, 10)) {
+            endDay += 1;
+        }
+        
+        const endMs = Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, endDay, parseInt(endHrs, 10), parseInt(endMins, 10));
         return new Date().getTime() >= endMs;
     } catch (e) {
         return false;

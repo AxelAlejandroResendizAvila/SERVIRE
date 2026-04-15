@@ -8,6 +8,9 @@ import { useBadge } from '../context/BadgeContext';
 
 import LoginScreen from '../screens/LoginScreen';
 import RegistroScreen from '../screens/RegistroScreen';
+import OlvideContrasenya from '../screens/OlvideContrasenya';
+import VerificarCodigo from '../screens/VerificarCodigo';
+import CambiarContrasenya from '../screens/CambiarContrasenya';
 import InicioAPP from '../screens/InicioAPP';
 import ExplorarEspacios from '../screens/ExplorarEspacios';
 import MisReservas from '../screens/MisReservas';
@@ -98,6 +101,9 @@ export default function AppNavigator() {
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Registro" component={RegistroScreen} />
+            <Stack.Screen name="OlvideContrasenya" component={OlvideContrasenya} />
+            <Stack.Screen name="VerificarCodigo" component={VerificarCodigo} />
+            <Stack.Screen name="CambiarContrasenya" component={CambiarContrasenya} />
             <Stack.Screen 
                 name="MainTabs" 
                 component={MainTabs}

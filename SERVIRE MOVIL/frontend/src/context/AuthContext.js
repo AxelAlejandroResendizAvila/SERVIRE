@@ -161,6 +161,55 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const requestPasswordReset = async (telefono) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${config.baseURL}/auth/request-reset`, {
+        telefono,
+      });
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyResetCode = async (telefono, code) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${config.baseURL}/auth/verify-code`, {
+        telefono,
+        code,
+      });
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (telefono, newPassword, confirmPassword, resetToken) => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${config.baseURL}/auth/reset-password`, {
+        telefono,
+        newPassword,
+        confirmPassword,
+        resetToken,
+      });
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -169,6 +218,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     changePassword,
     updateProfile,
+    requestPasswordReset,
+    verifyResetCode,
+    resetPassword,
   };
 
   return (

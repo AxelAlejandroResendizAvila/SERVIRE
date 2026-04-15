@@ -8,6 +8,9 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/change-password', authMiddleware, authController.changePassword);
 router.put('/update-profile', authMiddleware, authController.updateProfile);
+router.post('/request-reset', authController.requestPasswordReset);
+router.post('/verify-code', authController.verifyResetCode);
+router.post('/reset-password', authController.resetPassword);
 router.get('/me', authMiddleware, authController.getMe);
 
 // Rutas de administración de usuarios (admin y operadores pueden ver la lista)

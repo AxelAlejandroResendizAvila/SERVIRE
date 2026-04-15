@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { generateResetCode, sendWhatsAppCode, sendSmsCode } from '../services/twilio.js';
 
 export const register = async (req, res) => {
     const { nombre, apellidos, email, contrasena, telefono } = req.body;
@@ -421,5 +422,173 @@ export const updateProfile = async (req, res) => {
     } catch (error) {
         console.error('Error al actualizar perfil:', error);
         res.status(500).json({ error: 'Error al actualizar perfil' });
+    }
+};
+
+// Solicitar código de reset por WhatsApp
+export const requestPasswordReset = async (req, res) => {
+    const { telefono } = req.body;
+
+    try {
+        if (!telefono) {
+            return res.status(400).json({ error: 'El teléfono es requerido' });
+        }
+
+        // Validar teléfono: mínimo 10 dígitos
+        const telefonoDigitos = telefono.replace(/\D/g, '');
+        if (telefonoDigitos.length < 10) {
+            return res.status(400).json({ error: 'El teléfono debe tener al menos 10 dígitos' });
+        }
+
+        // Verificar que el usuario existe
+        const userResult = await pool.query(
+            'SELECT id_usuario, nombre FROM usuarios WHERE telefono = $1',
+            [telefono.trim()]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'No se encontró usuario con ese teléfono' });
+        }
+
+        const user = userResult.rows[0];
+
+        // Generar código
+        const resetCode = generateResetCode();
+        const expiresAt = new Date(Date.now() + 15 * 60000); // 15 minutos
+
+        // Guardar código en BD
+        await pool.query(
+            'UPDATE usuarios SET reset_code = $1, reset_code_expires_at = $2, reset_attempts = 0 WHERE id_usuario = $3',
+            [resetCode, expiresAt, user.id_usuario]
+        );
+
+        // Enviar por WhatsApp
+        const whatsappResult = await sendWhatsAppCode(telefono, resetCode);
+
+        if (!whatsappResult.success) {
+            console.error('WhatsApp falló:', whatsappResult.error);
+            // Fallback a SMS
+            const smsResult = await sendSmsCode(telefono, resetCode);
+            if (!smsResult.success) {
+                return res.status(500).json({ error: 'No se pudo enviar el código' });
+            }
+        }
+
+        res.json({
+            mensaje: 'Código enviado a tu WhatsApp',
+            expiresIn: 900, // 15 minutos en segundos
+        });
+    } catch (error) {
+        console.error('Error solicitando reset:', error);
+        res.status(500).json({ error: 'Error al enviar el código' });
+    }
+};
+
+// Verificar código de reset
+export const verifyResetCode = async (req, res) => {
+    const { telefono, code } = req.body;
+
+    try {
+        if (!telefono || !code) {
+            return res.status(400).json({ error: 'Teléfono y código requeridos' });
+        }
+
+        const userResult = await pool.query(
+            'SELECT id_usuario, reset_code, reset_code_expires_at FROM usuarios WHERE telefono = $1',
+            [telefono.trim()]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const user = userResult.rows[0];
+
+        // Verificar que el código existe y no expiró
+        if (!user.reset_code) {
+            return res.status(400).json({ error: 'No hay código de reset activo' });
+        }
+
+        if (new Date() > new Date(user.reset_code_expires_at)) {
+            return res.status(400).json({ error: 'El código ha expirado' });
+        }
+
+        // Verificar código
+        if (user.reset_code !== code.toString()) {
+            return res.status(401).json({ error: 'Código incorrecto' });
+        }
+
+        // Generar token temporal para reset
+        const resetToken = jwt.sign(
+            { id: user.id_usuario, purpose: 'password_reset' },
+            process.env.JWT_SECRET || 'servire_secret_key',
+            { expiresIn: '15m' }
+        );
+
+        res.json({
+            mensaje: 'Código verificado',
+            resetToken,
+        });
+    } catch (error) {
+        console.error('Error verificando código:', error);
+        res.status(500).json({ error: 'Error al verificar código' });
+    }
+};
+
+// Cambiar contraseña con token de reset
+export const resetPassword = async (req, res) => {
+    const { telefono, newPassword, confirmPassword, resetToken } = req.body;
+
+    try {
+        if (!telefono || !newPassword || !confirmPassword) {
+            return res.status(400).json({ error: 'Todos los campos son requeridos' });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({ error: 'Las contraseñas no coinciden' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        }
+
+        // Verificar resetToken
+        let decoded;
+        try {
+            decoded = jwt.verify(resetToken, process.env.JWT_SECRET || 'servire_secret_key');
+        } catch (err) {
+            return res.status(401).json({ error: 'Token inválido o expirado' });
+        }
+
+        if (decoded.purpose !== 'password_reset') {
+            return res.status(401).json({ error: 'Token no válido para reset' });
+        }
+
+        // Verificar que el usuario existe y pertenece a ese teléfono
+        const userResult = await pool.query(
+            'SELECT id_usuario FROM usuarios WHERE id_usuario = $1 AND telefono = $2',
+            [decoded.id, telefono.trim()]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // Hashear nueva contraseña
+        const salt = await bcrypt.genSalt(10);
+        const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+        // Actualizar contraseña y limpiar código
+        await pool.query(
+            'UPDATE usuarios SET contrasena_hash = $1, reset_code = NULL, reset_code_expires_at = NULL WHERE id_usuario = $2',
+            [newPasswordHash, decoded.id]
+        );
+
+        res.json({
+            mensaje: 'Contraseña actualizada correctamente',
+        });
+    } catch (error) {
+        console.error('Error reseteando contraseña:', error);
+        res.status(500).json({ error: 'Error al cambiar contraseña' });
     }
 };

@@ -128,6 +128,15 @@ export default function LoginScreen({ navigation }) {
                     </Text>
                 </View>
 
+                <View style={styles.forgotPasswordContainer}>
+                    <Text
+                        style={styles.footerLink}
+                        onPress={() => navigation.navigate('OlvideContrasenya')}
+                    >
+                        ¿Olvidaste tu contraseña?
+                    </Text>
+                </View>
+
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -206,5 +215,10 @@ const styles = StyleSheet.create({
     footerLink: {
         color: theme.colors.primary,
         fontWeight: 'bold',
+    },
+    forgotPasswordContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: theme.spacing.md,
     }
 });

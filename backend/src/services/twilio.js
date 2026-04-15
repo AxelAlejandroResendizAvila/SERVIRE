@@ -2,7 +2,7 @@ import twilio from 'twilio';
 
 const accountSid = process.env.ACCOUNT_SID;
 const authToken = process.env.AUTH_TOKEN;
-const twilioPhoneSid = process.env.TWILIO_PHONE_SID || 'PN32133720077dde71e2bc4e9d0864eec7';
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+17409210911';
 
 const client = twilio(accountSid, authToken);
 
@@ -22,7 +22,7 @@ export const sendWhatsAppCode = async (phoneNumber, code) => {
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+52${phoneNumber}`;
 
     const message = await client.messages.create({
-      from: `whatsapp:${twilioPhoneSid}`,
+      from: `whatsapp:${twilioPhoneNumber}`,
       to: `whatsapp:${formattedPhone}`,
       body: `Tu código de recuperación de contraseña es: ${code}\n\nEste código expirará en 15 minutos.`,
     });
@@ -48,7 +48,7 @@ export const sendSmsCode = async (phoneNumber, code) => {
     const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+52${phoneNumber}`;
 
     const message = await client.messages.create({
-      from: twilioPhoneSid,
+      from: twilioPhoneNumber,
       to: formattedPhone,
       body: `Tu código de recuperación de contraseña es: ${code}\n\nEste código expirará en 15 minutos.`,
     });

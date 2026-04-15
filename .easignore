@@ -1,0 +1,11 @@
+# Project-wide EAS ignore
+# This prevents EAS from looking into other projects in the monorepo
+backend/
+SERVIRE DESKTOP/
+**node_modules/
+.git/
+.idea/
+.vscode/
+**/uploads/
+**/dist/
+**/build/

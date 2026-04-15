@@ -1,0 +1,16 @@
+# Ignore sibling project directories
+/backend
+/SERVIRE DESKTOP
+/SERVIRE MOVIL/node_modules
+/node_modules
+
+# Standard Expo ignores
+.expo/*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Native folders
+ios/
+android/

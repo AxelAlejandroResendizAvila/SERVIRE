@@ -20,17 +20,17 @@ export default function OlvideContrasenya({ navigation }) {
             return;
         }
 
-        // Validar teléfono: mínimo 10 dígitos
-        const telefonoDigitos = telefono.replace(/\D/g, '');
-        if (telefonoDigitos.length < 10) {
-            showError('El teléfono debe tener al menos 10 dígitos');
+        // Validar teléfono: 10 dígitos exactos
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(telefono)) {
+            showError('El teléfono debe tener exactamente 10 dígitos (ej: 5512345678)');
             return;
         }
 
         setLoading(true);
         try {
             const result = await requestPasswordReset(telefono.trim());
-            showSuccess('Código enviado a tu WhatsApp');
+            showSuccess('Código enviado por SMS');
             
             // Navegar a pantalla de verificación
             setTimeout(() => {
@@ -53,7 +53,7 @@ export default function OlvideContrasenya({ navigation }) {
                     <View style={styles.infoCard}>
                         <Text style={styles.title}>¿Olvidaste tu contraseña?</Text>
                         <Text style={styles.description}>
-                            Ingresa tu número de teléfono y te enviaremos un código por WhatsApp para que recuperes tu acceso.
+                            Ingresa tu número de teléfono (10 dígitos) y te enviaremos un código por SMS para que recuperes tu acceso.
                         </Text>
                     </View>
                 </AnimatedCard>
@@ -64,9 +64,10 @@ export default function OlvideContrasenya({ navigation }) {
                             label="Número de teléfono"
                             value={telefono}
                             onChangeText={setTelefono}
-                            placeholder="55 1234 5678"
+                            placeholder="4425432233"
                             keyboardType="phone-pad"
                             editable={!loading}
+                            maxLength={10}
                         />
                     </View>
                 </AnimatedCard>

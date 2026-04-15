@@ -22,7 +22,7 @@ export default function Header({ title, showBack = false, showLogo = false }) {
                 ) : null}
             </View>
 
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={styles.title}>{title}</Text>
 
             <View style={styles.rightContainer} />
         </View>

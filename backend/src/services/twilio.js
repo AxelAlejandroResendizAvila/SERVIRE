@@ -27,7 +27,7 @@ export const sendWhatsAppCode = async (phoneNumber, code) => {
     const message = await client.messages.create({
       from: `whatsapp:${twilioPhoneNumber}`,
       to: `whatsapp:${formattedPhone}`,
-      body: `Tu código de recuperación de contraseña es: ${code}\n\nEste código expirará en 15 minutos.`,
+      body: `🔐 SERVIRE - Código de recuperación\n\n${code}\n\nVálido por 15 minutos.`,
     });
 
     return {
@@ -53,7 +53,7 @@ export const sendSmsCode = async (phoneNumber, code) => {
     const message = await client.messages.create({
       from: twilioPhoneNumber,
       to: formattedPhone,
-      body: `Tu código de recuperación de contraseña es: ${code}\n\nEste código expirará en 15 minutos.`,
+      body: `🔐 SERVIRE - Código: ${code}\n\nVálido 15 minutos.`,
     });
 
     return {

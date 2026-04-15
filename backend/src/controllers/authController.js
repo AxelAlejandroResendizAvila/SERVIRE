@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { generateResetCode, sendWhatsAppCode, sendSmsCode } from '../services/twilio.js';
+import { generateResetCode, sendSmsCode } from '../services/twilio.js';
 
 export const register = async (req, res) => {
     const { nombre, apellidos, email, contrasena, telefono } = req.body;
@@ -462,20 +462,14 @@ export const requestPasswordReset = async (req, res) => {
             [resetCode, expiresAt, user.id_usuario]
         );
 
-        // Enviar por WhatsApp
-        const whatsappResult = await sendWhatsAppCode(telefono, resetCode);
-
-        if (!whatsappResult.success) {
-            console.error('WhatsApp falló:', whatsappResult.error);
-            // Fallback a SMS
-            const smsResult = await sendSmsCode(telefono, resetCode);
-            if (!smsResult.success) {
-                return res.status(500).json({ error: 'No se pudo enviar el código' });
-            }
+        // Enviar por SMS
+        const smsResult = await sendSmsCode(telefono, resetCode);
+        if (!smsResult.success) {
+            return res.status(500).json({ error: 'No se pudo enviar el código' });
         }
 
         res.json({
-            mensaje: 'Código enviado a tu WhatsApp',
+            mensaje: 'Código enviado por SMS',
             expiresIn: 900, // 15 minutos en segundos
         });
     } catch (error) {

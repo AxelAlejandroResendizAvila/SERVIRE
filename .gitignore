@@ -18,6 +18,13 @@ dist
 dist-ssr
 *.local
 
+# Backend debug scripts (local development only)
+backend/check-*.js
+backend/inspect-db.js
+backend/seed.js
+backend/test-*.js
+backend/verify-credentials.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

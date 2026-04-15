@@ -35,6 +35,9 @@ async function createAdmin() {
         console.log('  Contraseña:', contrasena);
         console.log('  Rol: admin');
         
+        // Asegurar un solo admin: degradar admins existentes a operador
+        await pool.query("UPDATE usuarios SET rol = 'operador' WHERE rol = 'admin'");
+
         // Primero, eliminar si existe
         await pool.query(
             'DELETE FROM usuarios WHERE email = $1',

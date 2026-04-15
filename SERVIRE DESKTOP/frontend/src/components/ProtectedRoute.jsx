@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+const ProtectedRoute = ({ children, adminOnly = false, strictAdmin = false }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -17,7 +17,11 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
         return <Navigate to="/login" replace />;
     }
 
-    if (adminOnly && user.rol !== 'admin') {
+    if (adminOnly && user.rol !== 'admin' && user.rol !== 'operador') {
+        return <Navigate to="/reserva" replace />;
+    }
+
+    if (strictAdmin && user.rol !== 'admin') {
         return <Navigate to="/reserva" replace />;
     }
 

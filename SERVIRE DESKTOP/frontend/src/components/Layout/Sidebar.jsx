@@ -2,19 +2,22 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutGrid, ClipboardList, PlusSquare, Users, X, BarChart3 } from 'lucide-react';
 import logo from "../../assets/logo_icon.png";
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const location = useLocation();
 
+    const { user } = useAuth();
+
     const navItems = [
         { label: 'Espacios', icon: LayoutGrid, path: '/reserva' },
-        { label: 'Crear Espacio', icon: PlusSquare, path: '/crear-espacio' },
+        ...(user?.rol === 'admin' ? [{ label: 'Crear Espacio', icon: PlusSquare, path: '/crear-espacio' }] : []),
         { label: 'Solicitudes', icon: ClipboardList, path: '/admin' },
     ];
 
     const adminItems = [
         { label: 'Usuarios', icon: Users, path: '/usuarios' },
-        { label: 'Reportes', icon: BarChart3, path: '/reportes' },
+        ...(user?.rol === 'admin' ? [{ label: 'Reportes', icon: BarChart3, path: '/reportes' }] : []),
     ];
 
     const sidebarClasses = `

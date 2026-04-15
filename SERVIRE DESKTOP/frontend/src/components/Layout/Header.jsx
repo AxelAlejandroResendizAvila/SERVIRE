@@ -30,6 +30,12 @@ const Header = ({ toggleSidebar }) => {
                                 <span className="text-xs font-bold text-primary uppercase tracking-wider">Administrador</span>
                             </div>
                         )}
+                        {user?.rol === 'operador' && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <Shield size={10} className="text-blue-500" />
+                                <span className="text-xs font-bold text-blue-500 uppercase tracking-wider">Operador</span>
+                            </div>
+                        )}
                     </div>
 
                     <button

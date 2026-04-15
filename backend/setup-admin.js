@@ -32,6 +32,9 @@ async function setupAdmin() {
             console.log('✅ Columna ROL ya existe\n');
         }
 
+        // Asegurar un solo admin: degradar admins existentes a operador
+        await pool.query("UPDATE usuarios SET rol = 'operador' WHERE rol = 'admin'");
+
         // Crear usuario admin
         console.log('🔐 Creando usuario admin...');
         
@@ -66,7 +69,7 @@ async function setupAdmin() {
             [nombre, apellidos, email, contrasena_hash, telefono, 'admin']
         );
         
-        console.log('✅ ¡Usuario admin creado exitosamente!\n');
+        console.log('✅ ¡Usuario admin creado exitosamente! (admin único)\n');
         console.log('🎯 CREDENCIALES DE ACCESO AL PANEL ADMINISTRATIVO:');
         console.log('╔════════════════════════════════════════╗');
         console.log('║  Correo: admin@servire.com             ║');

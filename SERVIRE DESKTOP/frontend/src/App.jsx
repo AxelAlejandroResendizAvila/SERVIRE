@@ -37,14 +37,14 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/crear-espacio" element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute adminOnly={true} strictAdmin={true}>
               <Layout>
                 <CreateSpace />
               </Layout>
             </ProtectedRoute>
           } />
           <Route path="/editar-espacio/:id" element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute adminOnly={true} strictAdmin={true}>
               <Layout>
                 <EditSpace />
               </Layout>
@@ -58,7 +58,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/reportes" element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute adminOnly={true} strictAdmin={true}>
               <Layout>
                 <Reports />
               </Layout>

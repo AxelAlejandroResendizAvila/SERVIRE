@@ -6,9 +6,12 @@ import Button from '../components/UI/Button';
 import Badge from '../components/UI/Badge';
 import Modal from '../components/UI/Modal';
 import { getSpaces, deleteSpace, freeSpace, getSpaceDetail, getCategories, getEdificios, API_URL } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const ReservationView = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdmin = user?.rol === 'admin';
     const [spaces, setSpaces] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
@@ -131,7 +134,9 @@ const ReservationView = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-secondary">Gestión de Espacios</h1>
-                    <p className="text-gray-500 mt-1">Administra todos los espacios de la universidad.</p>
+                    <p className="text-gray-500 mt-1">
+                        {isAdmin ? 'Administra todos los espacios de la universidad.' : 'Consulta espacios y gestiona solicitudes de reserva.'}
+                    </p>
                 </div>
 
                 <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
@@ -154,9 +159,11 @@ const ReservationView = () => {
                         >
                             <Filter size={16} className="mr-1.5" /> Filtros
                         </Button>
-                        <Button variant="primary" onClick={() => navigate('/crear-espacio')} className="flex-1 md:flex-none shrink-0">
-                            <Plus size={18} className="mr-1" /> Nuevo Espacio
-                        </Button>
+                        {isAdmin && (
+                            <Button variant="primary" onClick={() => navigate('/crear-espacio')} className="flex-1 md:flex-none shrink-0">
+                                <Plus size={18} className="mr-1" /> Nuevo Espacio
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -212,13 +219,15 @@ const ReservationView = () => {
                             className="flex flex-col h-full overflow-hidden group cursor-pointer hover:shadow-md transition-shadow relative"
                         >
                             {/* Floating Modify Button */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); navigate(`/editar-espacio/${space.id}`); }}
-                                className="absolute top-3 right-3 p-2.5 bg-white/90 text-gray-600 hover:text-primary rounded-full shadow-md hover:shadow-lg transition-all z-10 opacity-0 group-hover:opacity-100"
-                                title="Modificar espacio"
-                            >
-                                <Pencil size={18} />
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/editar-espacio/${space.id}`); }}
+                                    className="absolute top-3 right-3 p-2.5 bg-white/90 text-gray-600 hover:text-primary rounded-full shadow-md hover:shadow-lg transition-all z-10 opacity-0 group-hover:opacity-100"
+                                    title="Modificar espacio"
+                                >
+                                    <Pencil size={18} />
+                                </button>
+                            )}
 
                             {/* Image or placeholder */}
                             {space.image ? (
@@ -272,10 +281,14 @@ const ReservationView = () => {
                         <div className="col-span-full py-12 text-center bg-white rounded-card border border-border">
                             <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-secondary">No hay espacios</h3>
-                            <p className="text-gray-500 mt-1">Crea tu primer espacio para empezar.</p>
-                            <Button variant="primary" className="mt-4" onClick={() => navigate('/crear-espacio')}>
-                                <Plus size={18} className="mr-1" /> Crear Espacio
-                            </Button>
+                            <p className="text-gray-500 mt-1">
+                                {isAdmin ? 'Crea tu primer espacio para empezar.' : 'Aún no hay espacios disponibles.'}
+                            </p>
+                            {isAdmin && (
+                                <Button variant="primary" className="mt-4" onClick={() => navigate('/crear-espacio')}>
+                                    <Plus size={18} className="mr-1" /> Crear Espacio
+                                </Button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -430,25 +443,27 @@ const ReservationView = () => {
                                 <div></div>
                             )}
 
-                            <div className="flex gap-3 w-full sm:w-auto">
-                                <Button
-                                    variant="outline"
-                                    className="flex-1 sm:flex-none"
-                                    onClick={() => navigate(`/editar-espacio/${detailModal.space.id}`)}
-                                >
-                                    <Pencil size={18} className="mr-2" /> Modificar
-                                </Button>
-                                <Button
-                                    variant="danger"
-                                    className="flex-1 sm:flex-none"
-                                    onClick={() => {
-                                        setDeleteModal({ open: true, space: detailModal.space });
-                                        setDetailModal({ open: false, space: null, loading: false });
-                                    }}
-                                >
-                                    <Trash2 size={18} className="mr-2" /> Eliminar
-                                </Button>
-                            </div>
+                            {isAdmin && (
+                                <div className="flex gap-3 w-full sm:w-auto">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1 sm:flex-none"
+                                        onClick={() => navigate(`/editar-espacio/${detailModal.space.id}`)}
+                                    >
+                                        <Pencil size={18} className="mr-2" /> Modificar
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        className="flex-1 sm:flex-none"
+                                        onClick={() => {
+                                            setDeleteModal({ open: true, space: detailModal.space });
+                                            setDetailModal({ open: false, space: null, loading: false });
+                                        }}
+                                    >
+                                        <Trash2 size={18} className="mr-2" /> Eliminar
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                     </div>

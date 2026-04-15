@@ -210,14 +210,46 @@ export const getUsers = async () => {
     return await res.json();
 };
 
-export const updateUserRole = async (userId, newRole) => {
-    const res = await fetch(`${BASE_URL}/auth/users/role`, {
+export const toggleOperador = async (userId) => {
+    const res = await fetch(`${BASE_URL}/auth/users/toggle-operador`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ userId, newRole })
+        body: JSON.stringify({ userId })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al actualizar rol');
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar rol de operador');
+    return data;
+};
+
+export const transferAdmin = async (targetUserId, password, confirmPhrase) => {
+    const res = await fetch(`${BASE_URL}/auth/transfer-admin`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ targetUserId, password, confirmPhrase })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al transferir admin');
+    return data;
+};
+
+export const toggleBlockUser = async (userId) => {
+    const res = await fetch(`${BASE_URL}/auth/users/toggle-block`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ userId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar estado de bloqueo');
+    return data;
+};
+
+export const deleteUser = async (userId) => {
+    const res = await fetch(`${BASE_URL}/auth/users/${userId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar usuario');
     return data;
 };
 

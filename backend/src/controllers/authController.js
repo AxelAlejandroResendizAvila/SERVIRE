@@ -51,6 +51,12 @@ export const login = async (req, res) => {
         }
 
         const unUsuario = userResult.rows[0];
+
+        // Verificar si la cuenta está bloqueada
+        if (unUsuario.bloqueado) {
+            return res.status(403).json({ error: 'Tu cuenta ha sido bloqueada. Contacta al administrador.' });
+        }
+
         const isMatch = await bcrypt.compare(contrasena, unUsuario.contrasena_hash);
 
         if (!isMatch) {
@@ -135,7 +141,9 @@ export const getMe = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
     try {
-        const result = await pool.query('SELECT id_usuario as id, nombre, email, rol, telefono FROM usuarios ORDER BY nombre ASC');
+        const result = await pool.query(
+            'SELECT id_usuario as id, nombre, email, rol, telefono, COALESCE(bloqueado, false) as bloqueado FROM usuarios ORDER BY nombre ASC'
+        );
         res.json(result.rows);
     } catch (error) {
         console.error(error);
@@ -143,13 +151,224 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-export const updateUserRole = async (req, res) => {
-    const { userId, newRole } = req.body;
+// Solo admin puede otorgar/quitar rol de operador
+export const toggleOperador = async (req, res) => {
+    const { userId } = req.body;
+    const adminId = req.usuario;
+
     try {
+        // Verificar que quien solicita es admin
+        if (req.rol !== 'admin') {
+            return res.status(403).json({ error: 'Solo el administrador puede modificar roles de operador' });
+        }
+
+        const targetUser = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [userId]);
+        if (targetUser.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const user = targetUser.rows[0];
+
+        // No puede modificar su propio rol por esta ruta
+        if (user.id_usuario === adminId) {
+            return res.status(400).json({ error: 'No puedes modificar tu propio rol por esta vía' });
+        }
+
+        // No se puede modificar a otro admin
+        if (user.rol === 'admin') {
+            return res.status(400).json({ error: 'No puedes modificar el rol del administrador' });
+        }
+
+        const newRole = user.rol === 'operador' ? 'usuario' : 'operador';
+
         await pool.query('UPDATE usuarios SET rol = $1 WHERE id_usuario = $2', [newRole, userId]);
-        res.json({ mensaje: 'Rol actualizado exitosamente' });
+
+        res.json({ 
+            mensaje: newRole === 'operador' 
+                ? `${user.nombre} ahora es Operador` 
+                : `${user.nombre} ya no es Operador`,
+            nuevoRol: newRole
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al actualizar el rol' });
+    }
+};
+
+// Transferir rol de admin a otro usuario (requiere contraseña + frase de confirmación)
+export const transferAdmin = async (req, res) => {
+    const { targetUserId, password, confirmPhrase } = req.body;
+    const adminId = req.usuario;
+
+    try {
+        // Verificar que el solicitante es admin
+        if (req.rol !== 'admin') {
+            return res.status(403).json({ error: 'Solo el administrador puede transferir su rol' });
+        }
+
+        // Verificar frase de confirmación
+        const expectedPhrase = 'Otorgo mi permiso a admin';
+        if (!confirmPhrase || confirmPhrase.trim() !== expectedPhrase) {
+            return res.status(400).json({ error: `Debes escribir exactamente: "${expectedPhrase}"` });
+        }
+
+        await pool.query('BEGIN');
+
+        // Bloquear el conjunto de admins para garantizar consistencia y que exista solo un admin.
+        const currentAdminsResult = await pool.query(
+            'SELECT id_usuario FROM usuarios WHERE rol = $1 ORDER BY id_usuario ASC FOR UPDATE',
+            ['admin']
+        );
+
+        if (currentAdminsResult.rows.length !== 1 || currentAdminsResult.rows[0].id_usuario !== adminId) {
+            await pool.query('ROLLBACK');
+            return res.status(409).json({ error: 'La transferencia requiere exactamente un administrador activo. Revisa la configuración de roles.' });
+        }
+
+        // Verificar contraseña del admin solicitante
+        const adminResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1 FOR UPDATE', [adminId]);
+        if (adminResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ error: 'Admin no encontrado' });
+        }
+
+        const admin = adminResult.rows[0];
+        const isMatch = await bcrypt.compare(password, admin.contrasena_hash);
+        if (!isMatch) {
+            await pool.query('ROLLBACK');
+            return res.status(401).json({ error: 'Contraseña incorrecta' });
+        }
+
+        // Verificar que el usuario destino existe
+        const targetResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1 FOR UPDATE', [targetUserId]);
+        if (targetResult.rows.length === 0) {
+            await pool.query('ROLLBACK');
+            return res.status(404).json({ error: 'Usuario destino no encontrado' });
+        }
+
+        const targetUser = targetResult.rows[0];
+
+        // No transferirse a sí mismo
+        if (adminId === targetUserId) {
+            await pool.query('ROLLBACK');
+            return res.status(400).json({ error: 'No puedes transferirte el admin a ti mismo' });
+        }
+
+        // Verificar que la cuenta destino no esté bloqueada
+        if (targetUser.bloqueado) {
+            await pool.query('ROLLBACK');
+            return res.status(400).json({ error: 'No puedes transferir el admin a una cuenta bloqueada' });
+        }
+
+        // Realizar la transferencia: el admin actual pasa a usuario, el target pasa a admin
+        await pool.query('UPDATE usuarios SET rol = $1 WHERE id_usuario = $2', ['usuario', adminId]);
+        await pool.query('UPDATE usuarios SET rol = $1 WHERE id_usuario = $2', ['admin', targetUserId]);
+        await pool.query('COMMIT');
+
+        res.json({ 
+            mensaje: `Rol de administrador transferido a ${targetUser.nombre}. Tu sesión será cerrada.`,
+            transferred: true
+        });
+    } catch (error) {
+        try {
+            await pool.query('ROLLBACK');
+        } catch (_) {}
+        console.error(error);
+        res.status(500).json({ error: 'Error al transferir el rol de admin' });
+    }
+};
+
+// Bloquear/desbloquear usuario (admin u operador pueden bloquear, pero solo admin puede desbloquear)
+export const toggleBlockUser = async (req, res) => {
+    const { userId } = req.body;
+    const requesterId = req.usuario;
+    const requesterRole = req.rol;
+
+    try {
+        if (requesterRole !== 'admin' && requesterRole !== 'operador') {
+            return res.status(403).json({ error: 'No tienes permisos para esta acción' });
+        }
+
+        const targetResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [userId]);
+        if (targetResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        const targetUser = targetResult.rows[0];
+
+        // No bloquear al admin
+        if (targetUser.rol === 'admin') {
+            return res.status(400).json({ error: 'No se puede bloquear al administrador' });
+        }
+
+        // Operadores no pueden bloquear/desbloquear a otros operadores
+        if (requesterRole === 'operador' && targetUser.rol === 'operador') {
+            return res.status(400).json({ error: 'Los operadores no pueden bloquear a otros operadores' });
+        }
+
+        // Operadores solo pueden bloquear; desbloquear es exclusivo de admin.
+        if (requesterRole === 'operador' && targetUser.bloqueado) {
+            return res.status(403).json({ error: 'Solo el administrador puede desbloquear cuentas' });
+        }
+
+        // No bloquearse a sí mismo
+        if (targetUser.id_usuario === requesterId) {
+            return res.status(400).json({ error: 'No puedes bloquearte a ti mismo' });
+        }
+
+        const newBlockedState = !targetUser.bloqueado;
+
+        await pool.query('UPDATE usuarios SET bloqueado = $1 WHERE id_usuario = $2', [newBlockedState, userId]);
+
+        res.json({
+            mensaje: newBlockedState 
+                ? `La cuenta de ${targetUser.nombre} ha sido bloqueada`
+                : `La cuenta de ${targetUser.nombre} ha sido desbloqueada`,
+            bloqueado: newBlockedState
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al cambiar estado de bloqueo' });
+    }
+};
+
+// Eliminar usuario (SOLO admin)
+export const deleteUser = async (req, res) => {
+    const { userId } = req.params;
+    const adminId = req.usuario;
+
+    try {
+        if (req.rol !== 'admin') {
+            return res.status(403).json({ error: 'Solo el administrador puede eliminar cuentas' });
+        }
+
+        const targetResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [userId]);
+        if (targetResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // No puede eliminarse a sí mismo
+        if (parseInt(userId) === adminId) {
+            return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
+        }
+
+        // No puede eliminar a otro admin (no debería haber, pero por seguridad)
+        if (targetResult.rows[0].rol === 'admin') {
+            return res.status(400).json({ error: 'No se puede eliminar la cuenta del administrador' });
+        }
+
+        // Cancelar reservas activas del usuario
+        await pool.query(
+            "UPDATE reservas SET estado = 'cancelada', motivo_estado = 'Cuenta eliminada por el administrador' WHERE id_usuario = $1 AND estado IN ('pendiente', 'confirmada')",
+            [userId]
+        );
+
+        // Eliminar al usuario
+        await pool.query('DELETE FROM usuarios WHERE id_usuario = $1', [userId]);
+
+        res.json({ mensaje: 'Usuario eliminado exitosamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al eliminar usuario' });
     }
 };

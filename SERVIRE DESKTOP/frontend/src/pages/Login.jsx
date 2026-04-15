@@ -33,9 +33,9 @@ const Login = () => {
             const token = localStorage.getItem('servire_token');
             if (token) {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                if (payload.rol !== 'admin') {
+                if (payload.rol !== 'admin' && payload.rol !== 'operador') {
                     logout();
-                    setError('Acceso denegado: Esta aplicación es solo para administradores.');
+                    setError('Acceso denegado: Aplicación solo para Administradores y Operadores.');
                     setLoading(false);
                     return;
                 }

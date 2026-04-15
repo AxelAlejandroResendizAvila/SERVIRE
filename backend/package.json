@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "setup-admin": "node setup-admin.js",
+    "setup-users": "node setup-users.js",
+    "create-admin": "node create-admin.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

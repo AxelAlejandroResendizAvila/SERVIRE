@@ -24,4 +24,12 @@ export const adminMiddleware = (req, res, next) => {
     next();
 };
 
+// Middleware que permite acceso a admin Y operadores
+export const adminOrOperadorMiddleware = (req, res, next) => {
+    if (req.rol !== 'admin' && req.rol !== 'operador') {
+        return res.status(403).json({ error: 'Acceso restringido: Se requiere rol de administrador u operador' });
+    }
+    next();
+};
+
 export default authMiddleware;

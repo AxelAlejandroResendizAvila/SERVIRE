@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import spacesRoutes from './routes/spacesRoutes.js';
 import reservationsRoutes from './routes/reservationsRoutes.js';
 import { startCronJobs } from './cron/cleaner.js';
+import { enforceSingleAdmin } from './utils/adminEnforcement.js';
 
 dotenv.config();
 
@@ -33,8 +34,19 @@ app.get('/', (req, res) => {
     res.send('API de SERVIRE funcionando correctamente.');
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server corriendo en el puerto ${PORT}`);
-    startCronJobs();
-});
+// Iniciar servidor
+const bootstrap = async () => {
+    try {
+        await enforceSingleAdmin();
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Server corriendo en puerto ${PORT}`);
+            startCronJobs();
+        });
+    } catch (error) {
+        console.error('❌ Error al iniciar servidor:', error.message);
+        process.exit(1);
+    }
+};
+
+bootstrap();
 

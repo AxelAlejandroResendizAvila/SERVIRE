@@ -12,6 +12,12 @@ export const register = async (req, res) => {
             return res.status(400).json({ error: 'El email ya está registrado' });
         }
 
+        // Validar que el teléfono sea único
+        const phoneExist = await pool.query('SELECT * FROM usuarios WHERE telefono = $1', [telefono]);
+        if (phoneExist.rows.length > 0) {
+            return res.status(400).json({ error: 'El número telefónico ya está registrado' });
+        }
+
         const salt = await bcrypt.genSalt(10);
         const contrasena_hash = await bcrypt.hash(contrasena, salt);
 
@@ -403,6 +409,15 @@ export const updateProfile = async (req, res) => {
         const telefonoDigitos = telefono.replace(/\D/g, '');
         if (telefonoDigitos.length < 10) {
             return res.status(400).json({ error: 'El teléfono debe tener al menos 10 dígitos' });
+        }
+
+        // Validar que el teléfono sea único (excepto si es el del usuario actual)
+        const phoneExist = await pool.query(
+            'SELECT id_usuario FROM usuarios WHERE telefono = $1 AND id_usuario != $2',
+            [telefono.trim(), userId]
+        );
+        if (phoneExist.rows.length > 0) {
+            return res.status(400).json({ error: 'El número telefónico ya está en uso' });
         }
 
         const result = await pool.query(

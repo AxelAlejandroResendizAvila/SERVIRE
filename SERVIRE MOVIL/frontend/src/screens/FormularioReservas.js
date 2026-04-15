@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, Alert, ActivityIndicator, TouchableOpacity, FlatList, Modal, Image, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Platform, ActivityIndicator, TouchableOpacity, FlatList, Modal, Image, KeyboardAvoidingView, TextInput, Animated } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 import { createReservation, getSpaces, getSpaceById, getToken } from '../services/api';
 import { config } from '../config';
+import { useToast } from '../context/ToastContext';
 
 export default function FormularioReservas({ navigation, route }) {
     const initialSpace = route?.params?.space || null;
+    const { error: showError } = useToast();
     const [space, setSpace] = useState(initialSpace);
     const [spaceGallery, setSpaceGallery] = useState([]);
     const [spaces, setSpaces] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loadingSpaces, setLoadingSpaces] = useState(!initialSpace);
     const [showSpaceSelector, setShowSpaceSelector] = useState(!initialSpace);
+    const [modalSearchQuery, setModalSearchQuery] = useState('');
+    const [modalFilterCategory, setModalFilterCategory] = useState('Todas');
     const [reason, setReason] = useState('');
+    const [error, setError] = useState('');
+    const shakeAnim = useRef(new Animated.Value(0)).current;
 
     // Estados para Fechas y Horas (Usamos objetos Date para el Picker)
     const [date, setDate] = useState(new Date());
@@ -30,6 +38,19 @@ export default function FormularioReservas({ navigation, route }) {
     const [showEndPicker, setShowEndPicker] = useState(false);
 
     const [loading, setLoading] = useState(false);
+
+    // Animación shake cuando hay error
+    useEffect(() => {
+        if (error) {
+            shakeAnim.setValue(0);
+            Animated.sequence([
+                Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: -10, duration: 100, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 10, duration: 100, useNativeDriver: true }),
+                Animated.timing(shakeAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+            ]).start();
+        }
+    }, [error, shakeAnim]);
 
     // Formateadores para mostrar en los inputs
     const formattedDate = date.toISOString().split('T')[0];
@@ -62,7 +83,7 @@ export default function FormularioReservas({ navigation, route }) {
                 setSpaceGallery(details.gallery);
             }
         } catch (err) {
-            console.error('Error fetching space details:', err);
+            // Error loading space details
         }
     };
 
@@ -71,9 +92,19 @@ export default function FormularioReservas({ navigation, route }) {
             setLoadingSpaces(true);
             const data = await getSpaces();
             setSpaces(data || []);
+            
+            // Also fetch categories
+            try {
+                const catRes = await fetch(`${config.baseURL}/categorias`);
+                if (catRes.ok) {
+                    const cats = await catRes.json();
+                    setCategories(cats || []);
+                }
+            } catch(e) {
+                // Error loading categories
+            }
         } catch (err) {
-            console.error('Error fetching spaces:', err);
-            Alert.alert('Error', 'No se pudieron cargar los espacios');
+            setError('No se pudieron cargar los espacios');
         } finally {
             setLoadingSpaces(false);
         }
@@ -82,7 +113,59 @@ export default function FormularioReservas({ navigation, route }) {
     const handleSelectSpace = (selectedSpace) => {
         setSpace(selectedSpace);
         setShowSpaceSelector(false);
+        // Limpiar filtros del modal
+        setModalSearchQuery('');
+        setModalFilterCategory('Todas');
+        // Limpiar error
+        setError('');
         // La galería se cargará automáticamente en el useEffect
+    };
+
+    // Función para calcular la relevancia de la búsqueda
+    const getRelevanceScore = (text, query) => {
+        if (!query) return 0;
+        const lowerText = text.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        
+        // Coincidencia exacta
+        if (lowerText === lowerQuery) return 1000;
+        // Comienza con la búsqueda
+        if (lowerText.startsWith(lowerQuery)) return 500;
+        // Contiene la búsqueda
+        if (lowerText.includes(lowerQuery)) return 100;
+        return 0;
+    };
+
+    // Filtrados de espacios en el modal
+    const getFilteredSpacesForModal = () => {
+        return spaces.filter(s => {
+            if (s.id === space?.id) return false; // Excluir el espacio actual
+            
+            // Búsqueda mejorada con relevancia
+            let matchesSearch = true;
+            if (modalSearchQuery.trim()) {
+                const relevance = getRelevanceScore(s.name, modalSearchQuery);
+                matchesSearch = relevance > 0;
+            }
+            
+            let matchesCategory = modalFilterCategory === 'Todas';
+            if (!matchesCategory && modalFilterCategory) {
+                const selectedCat = categories.find(c => c.id.toString() === modalFilterCategory);
+                if (selectedCat) {
+                    matchesCategory = s.categoryId && s.categoryId === selectedCat.id;
+                }
+            }
+            
+            return matchesSearch && matchesCategory;
+        }).sort((a, b) => {
+            // Ordenar por relevancia si hay búsqueda
+            if (modalSearchQuery.trim()) {
+                const scoreA = getRelevanceScore(a.name, modalSearchQuery);
+                const scoreB = getRelevanceScore(b.name, modalSearchQuery);
+                return scoreB - scoreA;
+            }
+            return 0;
+        });
     };
 
     const calculateDuration = () => {
@@ -105,7 +188,7 @@ export default function FormularioReservas({ navigation, route }) {
         today.setHours(0, 0, 0, 0);
 
         if (selectedDate < today) {
-            Alert.alert('Error', 'No puedes reservar en fechas pasadas');
+            showError('No puedes reservar en fechas pasadas');
             return;
         }
 
@@ -116,7 +199,7 @@ export default function FormularioReservas({ navigation, route }) {
             selectedStartTime.setHours(horaDeInicio, minutosDeInicio, 0);
             
             if (selectedStartTime < nowDateObj) {
-                Alert.alert('Error', 'No puedes reservar en horas que ya pasaron');
+                showError('No puedes reservar en horas que ya pasaron');
                 return;
             }
         }
@@ -125,7 +208,7 @@ export default function FormularioReservas({ navigation, route }) {
         const finTotalMinutos = horaDeTermino * 60 + minutosDeTermino;
 
         if (finTotalMinutos <= inicioTotalMinutos) {
-            Alert.alert('Error', 'La hora de fin debe ser después de la hora de inicio.');
+            showError('La hora de fin debe ser después de la hora de inicio.');
             return;
         }
 
@@ -137,12 +220,12 @@ export default function FormularioReservas({ navigation, route }) {
 
         // Si veo que cualquiera de las dos horas está fuera del horario establecido, detengo todo y lanzo una advertencia
         if (!inicioEsValido || !finEsValido) {
-            Alert.alert('Horario no válido', 'Las reservas solo pueden ser entre las 07:00 am y las 20:40 pm.');
+            showError('Las reservas solo pueden ser entre las 07:00 am y las 20:40 pm.');
             return;
         }
 
         if (!space?.id) {
-            Alert.alert('Error', 'Espacio no encontrado');
+            showError('Espacio no encontrado');
             return;
         }
 
@@ -152,7 +235,7 @@ export default function FormularioReservas({ navigation, route }) {
             // VERIFICAR QUE EL TOKEN EXISTE ANTES DE HACER LA RESERVA
             const token = await getToken();
             if (!token) {
-                Alert.alert('Error de Autenticación', 'No se encontró el token de sesión. Por favor, inicia sesión nuevamente.');
+                showError('No se encontró el token de sesión. Por favor, inicia sesión nuevamente.');
                 setLoading(false);
                 return;
             }
@@ -165,11 +248,6 @@ export default function FormularioReservas({ navigation, route }) {
             const fechaFin = new Date(date);
             fechaFin.setHours(endTime.getHours(), endTime.getMinutes(), 0);
 
-            console.log('📝 Creando reserva con los siguientes datos:');
-            console.log('  - Espacio:', space.id);
-            console.log('  - Inicio:', fechaInicio.toISOString());
-            console.log('  - Fin:', fechaFin.toISOString());
-
             const response = await createReservation({
                 id_espacio: space.id,
                 fecha_inicio: fechaInicio.toISOString(),
@@ -178,18 +256,16 @@ export default function FormularioReservas({ navigation, route }) {
             });
 
             if (response.reserva || response.success) {
-                Alert.alert(
-                    'Éxito',
-                    response.message || 'Reserva creada correctamente',
-                    [{ text: 'OK', onPress: () => {
-                        navigation.replace('MainTabs', { screen: 'Reservas' });
-                    }}]
-                );
+                // Reserva creada correctamente - mostrar éxito
+                setError('');
+                setTimeout(() => {
+                    navigation.replace('MainTabs', { screen: 'Reservas' });
+                }, 500);
             } else {
-                Alert.alert('Error', 'No se pudo crear la reserva');
+                showError('No se pudo crear la reserva');
             }
         } catch (error) {
-            Alert.alert('Error', error.message || 'Error al crear la reserva');
+            showError(error.message || 'Error al crear la reserva');
         } finally {
             setLoading(false);
         }
@@ -207,65 +283,83 @@ export default function FormularioReservas({ navigation, route }) {
                 keyboardShouldPersistTaps="handled"
             >
 
+                {/* Error Container con Animación */}
+                {error ? (
+                    <Animated.View style={[styles.errorContainer, { transform: [{ translateX: shakeAnim }] }]}>
+                        <Ionicons name="alert-circle" size={20} color={theme.colors.error} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </Animated.View>
+                ) : null}
+
                 {/* Selector de Espacio */}
                 <TouchableOpacity onPress={() => setShowSpaceSelector(true)}>
-                    <Card style={styles.spaceInfoCard}>
-                        {space?.image ? (
-                            <Image
-                                source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
-                                style={styles.spaceImage}
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <View style={styles.spaceImagePlaceholder}>
-                                <Ionicons name="business" size={60} color={theme.colors.primary} />
-                            </View>
-                        )}
-                        <View style={styles.spaceDetails}>
-                            <View style={styles.spaceHeaderRow}>
-                                <View style={styles.spaceTextContainer}>
-                                    <Text style={styles.spaceName}>{space?.name || 'Selecciona un espacio'}</Text>
-                                    <Text style={styles.spaceType}>{space?.type || 'Haz clic para elegir'}</Text>
+                    <AnimatedCard
+                        animation="fadeUp"
+                        duration={600}
+                    >
+                        <Card style={styles.spaceInfoCard}>
+                            {space?.image ? (
+                                <Image
+                                    source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
+                                    style={styles.spaceImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <View style={styles.spaceImagePlaceholder}>
+                                    <Ionicons name="business" size={60} color={theme.colors.primary} />
                                 </View>
-                                <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
-                            </View>
-                            <Text style={styles.spaceCapacity}>
-                                📍 {space?.location || 'Ubicación no especificada'}
-                            </Text>
-                            <Text style={styles.spaceCapacity}>
-                                👥 Capacidad: {space?.capacity || '?'} personas
-                            </Text>
-                            {space?.description && (
-                                <Text style={styles.spaceDescription} numberOfLines={2}>
-                                    {space.description}
-                                </Text>
                             )}
-                        </View>
-                    </Card>
+                            <View style={styles.spaceDetails}>
+                                <View style={styles.spaceHeaderRow}>
+                                    <View style={styles.spaceTextContainer}>
+                                        <Text style={styles.spaceName}>{space?.name || 'Selecciona un espacio'}</Text>
+                                        <Text style={styles.spaceType}>{space?.type || 'Haz clic para elegir'}</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={24} color={theme.colors.primary} />
+                                </View>
+                                <Text style={styles.spaceCapacity}>
+                                    📍 {space?.location || 'Ubicación no especificada'}
+                                </Text>
+                                <Text style={styles.spaceCapacity}>
+                                    👥 Capacidad: {space?.capacity || '?'} personas
+                                </Text>
+                                {space?.description && (
+                                    <Text style={styles.spaceDescription} numberOfLines={2}>
+                                        {space.description}
+                                    </Text>
+                                )}
+                            </View>
+                        </Card>
+                    </AnimatedCard>
                 </TouchableOpacity>
 
                 {/* Galería de imágenes del espacio */}
                 {spaceGallery && spaceGallery.length > 0 && (
-                    <View style={styles.galleryContainer}>
-                        <Text style={styles.galleryTitle}>Más fotos del espacio</Text>
-                        <FlatList
-                            data={spaceGallery}
-                            renderItem={({ item }) => (
-                                <View style={styles.galleryItem}>
-                                    <Image
-                                        source={{ uri: item.url.startsWith('http') ? item.url : `${config.baseURL.replace('/api', '')}${item.url}` }}
-                                        style={styles.galleryImage}
-                                        resizeMode="cover"
-                                    />
-                                </View>
-                            )}
-                            keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            pagingEnabled
-                            scrollEventThrottle={16}
-                        />
-                    </View>
+                    <AnimatedCard animation="fadeIn" delay={400} duration={500}>
+                        <View style={styles.galleryTitleContainer}>
+                            <Text style={styles.galleryTitle}>Más fotos del espacio</Text>
+                        </View>
+                        <View style={styles.galleryContainer}>
+                            <FlatList
+                                data={spaceGallery}
+                                renderItem={({ item }) => (
+                                    <View style={styles.galleryItem}>
+                                        <Image
+                                            source={{ uri: item.url.startsWith('http') ? item.url : `${config.baseURL.replace('/api', '')}${item.url}` }}
+                                            style={styles.galleryImage}
+                                            resizeMode="cover"
+                                        />
+                                    </View>
+                                )}
+                                keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                pagingEnabled={false}
+                                scrollEventThrottle={16}
+                                nestedScrollEnabled={true}
+                            />
+                        </View>
+                    </AnimatedCard>
                 )}
 
                 {/* Modal para seleccionar espacios */}
@@ -283,13 +377,69 @@ export default function FormularioReservas({ navigation, route }) {
                             <View style={{ width: 24 }} />
                         </View>
 
+                        {/* Búsqueda en el modal */}
+                        <View style={styles.modalSearchContainer}>
+                            <View style={styles.modalSearchInputContainer}>
+                                <Ionicons name="search" size={18} color={theme.colors.text.secondary} style={{ marginRight: 8 }} />
+                                <TextInput
+                                    style={styles.modalSearchInput}
+                                    placeholder="Buscar espacios..."
+                                    placeholderTextColor={theme.colors.text.secondary}
+                                    value={modalSearchQuery}
+                                    onChangeText={setModalSearchQuery}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Filtros de categoría en el modal */}
+                        {categories.length > 0 && (
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false} 
+                                contentContainerStyle={styles.modalFiltersContainer}
+                            >
+                                <TouchableOpacity
+                                    style={[
+                                        styles.modalFilterChip,
+                                        modalFilterCategory === 'Todas' && styles.modalActiveFilterChip
+                                    ]}
+                                    onPress={() => setModalFilterCategory('Todas')}
+                                >
+                                    <Text style={[
+                                        styles.modalFilterText,
+                                        modalFilterCategory === 'Todas' && styles.modalActiveFilterText
+                                    ]}>
+                                        Todas
+                                    </Text>
+                                </TouchableOpacity>
+                                
+                                {categories.map(category => (
+                                    <TouchableOpacity
+                                        key={category.id}
+                                        style={[
+                                            styles.modalFilterChip,
+                                            modalFilterCategory === category.id.toString() && styles.modalActiveFilterChip
+                                        ]}
+                                        onPress={() => setModalFilterCategory(category.id.toString())}
+                                    >
+                                        <Text style={[
+                                            styles.modalFilterText,
+                                            modalFilterCategory === category.id.toString() && styles.modalActiveFilterText
+                                        ]}>
+                                            {category.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+
                         {loadingSpaces ? (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="large" color={theme.colors.primary} />
                             </View>
                         ) : (
                             <FlatList
-                                data={spaces.filter(s => s.id !== space?.id)}
+                                data={getFilteredSpacesForModal()}
                                 ListHeaderComponent={() => (
                                     <View>
                                         {space && (
@@ -325,9 +475,11 @@ export default function FormularioReservas({ navigation, route }) {
                                                 )}
                                             </View>
                                         )}
-                                        <Text style={styles.submenuTitle}>
-                                            {space ? "Otros espacios disponibles" : "Todos los espacios disponibles"}
-                                        </Text>
+                                        {getFilteredSpacesForModal().length > 0 && (
+                                            <Text style={styles.submenuTitle}>
+                                                {space ? "Otros espacios disponibles" : "Todos los espacios disponibles"}
+                                            </Text>
+                                        )}
                                     </View>
                                 )}
                                 keyExtractor={(item) => item.id.toString()}
@@ -372,6 +524,12 @@ export default function FormularioReservas({ navigation, route }) {
                                     </TouchableOpacity>
                                 )}
                                 contentContainerStyle={styles.spaceListContainer}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyContainer}>
+                                        <Ionicons name="search" size={48} color={theme.colors.text.secondary} />
+                                        <Text style={styles.emptyText}>No se encontraron espacios</Text>
+                                    </View>
+                                }
                             />
                         )}
                     </View>
@@ -471,13 +629,18 @@ export default function FormularioReservas({ navigation, route }) {
                     />
                 </View>
 
-                <Card style={styles.summaryCard}>
-                    <Text style={styles.summaryTitle}>Resumen</Text>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Duración total:</Text>
-                        <Text style={styles.summaryValue}>{calculateDuration()} horas</Text>
-                    </View>
-                </Card>
+                <AnimatedCard
+                    animation="fadeUp"
+                    duration={600}
+                >
+                    <Card style={styles.summaryCard}>
+                        <Text style={styles.summaryTitle}>Resumen</Text>
+                        <View style={styles.summaryRow}>
+                            <Text style={styles.summaryLabel}>Duración total:</Text>
+                            <Text style={styles.summaryValue}>{calculateDuration()} horas</Text>
+                        </View>
+                    </Card>
+                </AnimatedCard>
 
                 <Button
                     title={loading ? "Procesando..." : "Confirmar Reserva"}
@@ -501,6 +664,22 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: theme.spacing.lg,
+    },
+    errorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+        borderLeftWidth: 4,
+        borderLeftColor: theme.colors.error || '#dc3545',
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderRadius: 4,
+    },
+    errorText: {
+        color: theme.colors.error || '#dc3545',
+        marginLeft: theme.spacing.md,
+        fontSize: 13,
+        fontWeight: '500',
     },
     spaceInfoCard: {
         flexDirection: 'column',
@@ -781,32 +960,94 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.lg,
     },
     // Estilos para la galería
+    galleryTitleContainer: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+    },
     galleryContainer: {
-        marginTop: theme.spacing.lg,
         marginBottom: theme.spacing.lg,
+        height: 220,
     },
     galleryTitle: {
         ...theme.typography.subheader,
         fontSize: 16,
         fontWeight: '600',
         color: theme.colors.text.primary,
-        marginBottom: theme.spacing.md,
-        marginLeft: theme.spacing.lg,
     },
     galleryItem: {
-        marginHorizontal: theme.spacing.md,
+        marginHorizontal: theme.spacing.sm,
+        marginVertical: theme.spacing.sm,
         borderRadius: theme.borderRadius.lg,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 5,
+        elevation: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     galleryImage: {
         width: 280,
-        height: 180,
-        resizeMode: 'cover',
+        height: 200,
         borderRadius: theme.borderRadius.lg,
+    },
+    // Estilos para búsqueda y filtros en el modal
+    modalSearchContainer: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 8,
+    },
+    modalSearchInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.full,
+        paddingHorizontal: theme.spacing.md,
+        height: 38,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    modalSearchInput: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.text.primary,
+    },
+    modalFiltersContainer: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 3,
+        gap: 4,
+    },
+    modalFilterChip: {
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 4,
+        borderRadius: theme.borderRadius.full,
+        backgroundColor: theme.colors.surface,
+        marginRight: 6,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    modalActiveFilterChip: {
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
+    },
+    modalFilterText: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: theme.colors.text.primary,
+    },
+    modalActiveFilterText: {
+        color: theme.colors.text.inverse,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.xl * 3,
+    },
+    emptyText: {
+        marginTop: theme.spacing.md,
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        fontWeight: '500',
     },
 });

@@ -147,6 +147,12 @@ const MyReservations = () => {
                                                     {formatLocalTime(res.time.split(' - ')[0])} - {formatLocalTime(res.time.split(' - ')[1])}
                                                 </span>
                                             </div>
+                                            {res.createdAt && (
+                                                <div className="flex items-center w-full sm:w-1/2 text-xs text-gray-500">
+                                                    <Clock size={14} className="mr-2 text-gray-400" />
+                                                    <span>Solicitada: {new Date(res.createdAt).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center w-full sm:w-1/2">
                                                 <MapPin size={16} className="mr-2 text-primary/70" />
                                                 <span>{spaceInfo.type} • Capacidad: {spaceInfo.capacity}</span>

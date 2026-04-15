@@ -21,6 +21,14 @@ const Login = () => {
         setError('');
         setLoading(true);
 
+        // Validar que no use solo números (matrículas)
+        const emailPart = email.split('@')[0];
+        if (/^\d+$/.test(emailPart)) {
+            setError('No puedes usar solo números (matrículas) como correo');
+            setLoading(false);
+            return;
+        }
+
         const res = await login(email, password);
         if (res.success) {
             // Importante: No basta con que el login sea exitoso,

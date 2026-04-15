@@ -3,17 +3,18 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Activi
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedButton from '../components/AnimatedButton';
 import { Ionicons } from '@expo/vector-icons';
 import { getSpaces } from '../services/api';
 import { config } from '../config';
 
-const FILTERS = ['Todos', 'Laboratorios', 'Aulas', 'Salas de reuniones', 'General'];
-
 export default function ExplorarEspacios({ navigation }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('Todos');
+    const [activeFilter, setActiveFilter] = useState('Todas');
     const [activeBuilding, setActiveBuilding] = useState('Todos');
     const [spaces, setSpaces] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [edificios, setEdificios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -28,6 +29,33 @@ export default function ExplorarEspacios({ navigation }) {
             setError('');
             const data = await getSpaces();
             setSpaces(data || []);
+            
+            try {
+                // Obtener categorías dinámicamente
+                const catRes = await fetch(`${config.baseURL}/categorias`);
+                if (catRes.ok) {
+                    const cats = await catRes.json();
+                    setCategories(cats || []);
+                } else {
+                    // Si no hay endpoint de categorías, usar las por defecto
+                    setCategories([
+                        { id: 1, name: 'Tics', description: 'Laboratorios de cómputo' },
+                        { id: 2, name: 'Auditorio', description: 'Salas magnas' },
+                        { id: 3, name: 'Salas', description: 'Salas de juntas o estudio' },
+                        { id: 4, name: 'Laboratorio', description: 'Laboratorios experimentales' },
+                        { id: 5, name: 'Biblioteca', description: 'Zonas de silencio y estudio' }
+                    ]);
+                }
+            } catch(e) {
+                console.warn('Error cargando categorías, usando por defecto:', e);
+                setCategories([
+                    { id: 1, name: 'Tics', description: 'Laboratorios de cómputo' },
+                    { id: 2, name: 'Auditorio', description: 'Salas magnas' },
+                    { id: 3, name: 'Salas', description: 'Salas de juntas o estudio' },
+                    { id: 4, name: 'Laboratorio', description: 'Laboratorios experimentales' },
+                    { id: 5, name: 'Biblioteca', description: 'Zonas de silencio y estudio' }
+                ]);
+            }
             
             try {
                 const res = await fetch(`${config.baseURL}/espacios/edificios`);
@@ -48,11 +76,46 @@ export default function ExplorarEspacios({ navigation }) {
         }
     };
 
+    const getRelevanceScore = (text, query) => {
+        if (!query) return 0;
+        const lowerText = text.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        
+        // Coincidencia exacta
+        if (lowerText === lowerQuery) return 1000;
+        // Comienza con la búsqueda
+        if (lowerText.startsWith(lowerQuery)) return 500;
+        // Contiene la búsqueda
+        if (lowerText.includes(lowerQuery)) return 100;
+        return 0;
+    };
+
     const filteredSpaces = spaces.filter(space => {
-        const matchesFilter = activeFilter === 'Todos' || space.type === activeFilter;
-        const matchesSearch = space.name.toLowerCase().includes(searchQuery.toLowerCase());
+        // Filtrar por categoría usando categoryId
+        let matchesFilter = activeFilter === 'Todas';
+        if (!matchesFilter && activeFilter) {
+            // activeFilter contiene el ID de la categoría seleccionada
+            const selectedCatId = parseInt(activeFilter);
+            matchesFilter = space.categoryId && space.categoryId === selectedCatId;
+        }
+        
+        // Búsqueda mejorada con relevancia
+        let matchesSearch = true;
+        if (searchQuery.trim()) {
+            const relevance = getRelevanceScore(space.name, searchQuery);
+            matchesSearch = relevance > 0;
+        }
+        
         const matchesBuilding = activeBuilding === 'Todos' || space.buildingId === activeBuilding;
         return matchesFilter && matchesSearch && matchesBuilding;
+    }).sort((a, b) => {
+        // Ordenar por relevancia si hay búsqueda
+        if (searchQuery.trim()) {
+            const scoreA = getRelevanceScore(a.name, searchQuery);
+            const scoreB = getRelevanceScore(b.name, searchQuery);
+            return scoreB - scoreA;
+        }
+        return 0;
     });
 
     const getTypeIcon = (type) => {
@@ -86,58 +149,77 @@ export default function ExplorarEspacios({ navigation }) {
             </View>
 
             <View style={styles.filtersContainer}>
+                <Text style={styles.filterSectionLabel}>Categorías</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-                    {FILTERS.map(filter => (
+                    <TouchableOpacity
+                        style={[
+                            styles.filterChip,
+                            activeFilter === 'Todas' && styles.activeFilterChip
+                        ]}
+                        onPress={() => setActiveFilter('Todas')}
+                    >
+                        <Text style={[
+                            styles.filterText,
+                            activeFilter === 'Todas' && styles.activeFilterText
+                        ]}>
+                            Todas
+                        </Text>
+                    </TouchableOpacity>
+                    
+                    {categories.map(category => (
                         <TouchableOpacity
-                            key={filter}
+                            key={category.id}
                             style={[
                                 styles.filterChip,
-                                activeFilter === filter && styles.activeFilterChip
+                                activeFilter === category.id.toString() && styles.activeFilterChip
                             ]}
-                            onPress={() => setActiveFilter(filter)}
+                            onPress={() => setActiveFilter(category.id.toString())}
                         >
                             <Text style={[
                                 styles.filterText,
-                                activeFilter === filter && styles.activeFilterText
+                                activeFilter === category.id.toString() && styles.activeFilterText
                             ]}>
-                                {filter}
+                                {category.name}
                             </Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
                 
                 {edificios.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filtersScroll, { marginTop: 10 }]}>
-                        <TouchableOpacity
-                            style={[
-                                styles.filterChip,
-                                activeBuilding === 'Todos' && styles.activeFilterChip
-                            ]}
-                            onPress={() => setActiveBuilding('Todos')}
-                        >
-                            <Text style={[styles.filterText, activeBuilding === 'Todos' && styles.activeFilterText]}>
-                                Todos los edificios
-                            </Text>
-                        </TouchableOpacity>
-                        
-                        {edificios.map(ed => (
+                    <>
+                        <Text style={styles.filterSectionLabel}>Edificios</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filtersScroll, { marginTop: 6 }]}>
                             <TouchableOpacity
-                                key={ed.id}
                                 style={[
                                     styles.filterChip,
-                                    activeBuilding === ed.id && styles.activeFilterChip
+                                    activeBuilding === 'Todos' && styles.activeFilterChip
                                 ]}
-                                onPress={() => setActiveBuilding(ed.id)}
+                                onPress={() => setActiveBuilding('Todos')}
                             >
-                                <Text style={[
-                                    styles.filterText,
-                                    activeBuilding === ed.id && styles.activeFilterText
-                                ]}>
-                                    {ed.name}
+                                <Text style={[styles.filterText, activeBuilding === 'Todos' && styles.activeFilterText]}>
+                                    Todos
                                 </Text>
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                            
+                            {edificios.map(ed => (
+                                <TouchableOpacity
+                                    key={ed.id}
+                                    style={[
+                                        styles.filterChip,
+                                        activeBuilding === ed.id && styles.activeFilterChip
+                                    ]}
+                                    onPress={() => setActiveBuilding(ed.id)}
+                                >
+                                    <Text style={[
+                                        styles.filterText,
+                                        activeBuilding === ed.id && styles.activeFilterText
+                                    ]}>
+                                        {ed.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </>
                 )}
             </View>
 
@@ -157,12 +239,18 @@ export default function ExplorarEspacios({ navigation }) {
                     </View>
                 ) : (
                     <>
-                        {filteredSpaces.map(space => (
-                            <TouchableOpacity
+                        {filteredSpaces.map((space, index) => (
+                            <AnimatedCard
                                 key={space.id}
-                                onPress={() => navigation.navigate('FormularioReservas', { space })}
+                                animation="fadeUp"
+                                delay={index * 80}
+                                duration={500}
                             >
-                                <Card style={styles.spaceCard}>
+                                <AnimatedButton
+                                    onPress={() => navigation.navigate('FormularioReservas', { space })}
+                                    style={styles.spaceCardButton}
+                                >
+                                    <Card style={styles.spaceCard}>
                                     {space.image ? (
                                         <Image
                                             source={{ uri: space.image.startsWith('http') ? space.image : `${config.baseURL.replace('/api', '')}${space.image}` }}
@@ -197,7 +285,8 @@ export default function ExplorarEspacios({ navigation }) {
                                         </Text>
                                     </View>
                                 </Card>
-                            </TouchableOpacity>
+                                </AnimatedButton>
+                            </AnimatedCard>
                         ))}
                         {filteredSpaces.length === 0 && (
                             <Text style={styles.emptyText}>No se encontraron espacios.</Text>
@@ -215,8 +304,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
     },
     searchContainer: {
-        padding: theme.spacing.lg,
-        paddingBottom: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 8,
     },
     searchInputContainer: {
         flexDirection: 'row',
@@ -224,28 +313,31 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.full,
         paddingHorizontal: theme.spacing.md,
-        height: 48,
+        height: 38,
     },
     searchIcon: {
-        marginRight: theme.spacing.sm,
+        marginRight: 6,
     },
     searchInput: {
         flex: 1,
-        fontSize: theme.typography.body.fontSize,
+        fontSize: 13,
         color: theme.colors.text.primary,
     },
     filtersContainer: {
-        paddingBottom: theme.spacing.md,
+        paddingBottom: 8,
+        paddingTop: 4,
     },
     filtersScroll: {
         paddingHorizontal: theme.spacing.lg,
+        paddingVertical: 3,
+        gap: 4,
     },
     filterChip: {
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 4,
         borderRadius: theme.borderRadius.full,
         backgroundColor: theme.colors.surface,
-        marginRight: theme.spacing.sm,
+        marginRight: 6,
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
@@ -253,15 +345,32 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
         borderColor: theme.colors.primary,
     },
+    filterChipContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    filterSectionLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: theme.colors.text.secondary,
+        paddingHorizontal: theme.spacing.lg,
+        marginTop: 6,
+        marginBottom: 3,
+        textTransform: 'uppercase',
+        letterSpacing: 0.2,
+    },
     filterText: {
         ...theme.typography.body,
         fontWeight: '500',
+        fontSize: 11,
     },
     activeFilterText: {
         color: theme.colors.text.inverse,
     },
     listContainer: {
         padding: theme.spacing.lg,
+        alignItems: 'center',
     },
     loadingContainer: {
         alignItems: 'center',
@@ -294,6 +403,9 @@ const styles = StyleSheet.create({
     retryText: {
         color: theme.colors.text.inverse,
         fontWeight: 'bold',
+    },
+    spaceCardButton: {
+        width: '100%',
     },
     spaceCard: {
         flexDirection: 'column',

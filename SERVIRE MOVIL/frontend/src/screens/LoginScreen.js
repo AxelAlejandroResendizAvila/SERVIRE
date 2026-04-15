@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Ima
 import { theme } from '../theme/theme';
 import Button from '../components/Button';
 import InputField from '../components/InputField';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import LogoSVG from '../components/LogoSVG';
+import { useToast } from '../context/ToastContext';
 
 export default function LoginScreen({ navigation }) {
     const [email, setEmail] = useState('');
@@ -14,19 +16,21 @@ export default function LoginScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { login } = useAuth();
+    const { error: showError } = useToast();
 
     const handleLogin = async () => {
         // Validación
         if (!email || !password) {
-            setError('Por favor completa todos los campos');
+            showError('Por favor completa todos los campos');
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.toLowerCase())) {
-            setError('Por favor ingresa un correo electrónico válido');
+            showError('Por favor ingresa un correo electrónico válido');
             return;
         }
+
 
         setLoading(true);
         setError('');
@@ -36,14 +40,12 @@ export default function LoginScreen({ navigation }) {
             
             if (response.token && response.usuario) {
                 // Login exitoso
-                Alert.alert('Éxito', `¡Bienvenido ${response.usuario.nombre}!`);
                 navigation.replace('MainTabs');
             } else {
                 setError('Error en la respuesta del servidor');
             }
         } catch (err) {
-            setError(err.message || 'Error al iniciar sesión');
-            Alert.alert('Error', err.message || 'Error al iniciar sesión');
+            showError(err.message || 'Error al iniciar sesión');
         } finally {
             setLoading(false);
         }
@@ -71,40 +73,46 @@ export default function LoginScreen({ navigation }) {
                 ) : null}
 
                 <View style={styles.formContainer}>
-                    <InputField
-                        label="Correo electrónico"
-                        placeholder="Introduce tu correo"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        icon={<Ionicons name="mail-outline" size={20} color={theme.colors.text.secondary} />}
-                        editable={!loading}
-                    />
+                    <AnimatedCard animation="fadeUp" delay={100} duration={500}>
+                        <InputField
+                            label="Correo electrónico"
+                            placeholder="Introduce tu correo"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            icon={<Ionicons name="mail-outline" size={20} color={theme.colors.text.secondary} />}
+                            editable={!loading}
+                        />
+                    </AnimatedCard>
 
-                    <InputField
-                        label="Contraseña"
-                        placeholder="Introduce tu contraseña"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
-                        rightIcon={
-                            <Ionicons
-                                name={showPassword ? "eye-outline" : "eye-off-outline"}
-                                size={20}
-                                color={theme.colors.text.secondary}
-                            />
-                        }
-                        onRightIconPress={() => setShowPassword(!showPassword)}
-                        editable={!loading}
-                    />
+                    <AnimatedCard animation="fadeUp" delay={200} duration={500}>
+                        <InputField
+                            label="Contraseña"
+                            placeholder="Introduce tu contraseña"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            icon={<Ionicons name="lock-closed-outline" size={20} color={theme.colors.text.secondary} />}
+                            rightIcon={
+                                <Ionicons
+                                    name={showPassword ? "eye-outline" : "eye-off-outline"}
+                                    size={20}
+                                    color={theme.colors.text.secondary}
+                                />
+                            }
+                            onRightIconPress={() => setShowPassword(!showPassword)}
+                            editable={!loading}
+                        />
+                    </AnimatedCard>
 
-                    <Button
-                        title={loading ? "Cargando..." : "Entrar"}
-                        onPress={handleLogin}
-                        style={styles.loginButton}
-                        disabled={loading}
-                    />
+                    <AnimatedCard animation="fadeUp" delay={300} duration={500}>
+                        <Button
+                            title={loading ? "Cargando..." : "Entrar"}
+                            onPress={handleLogin}
+                            style={styles.loginButton}
+                            disabled={loading}
+                        />
+                    </AnimatedCard>
 
                     {loading && <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />}
 
@@ -170,6 +178,8 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         width: '100%',
+        alignItems: 'center',
+        gap: theme.spacing.md,
     },
     loginButton: {
         marginTop: theme.spacing.md,

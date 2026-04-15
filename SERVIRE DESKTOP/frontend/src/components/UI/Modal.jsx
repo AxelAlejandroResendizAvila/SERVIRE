@@ -25,10 +25,10 @@ const Modal = ({ isOpen, onClose, title, children, actions }) => {
                 aria-hidden="true"
             />
 
-            <div className="relative w-full max-w-lg p-6 mx-auto my-6 z-50">
-                <div className="relative flex flex-col w-full bg-white border-0 rounded-card shadow-xl outline-none focus:outline-none">
+            <div className="relative w-full max-w-2xl p-6 mx-auto my-6 z-50 max-h-[90vh] flex flex-col">
+                <div className="relative flex flex-col w-full bg-white border-0 rounded-card shadow-xl outline-none focus:outline-none overflow-hidden">
 
-                    <div className="flex items-start justify-between p-5 border-b border-solid rounded-t border-border">
+                    <div className="flex items-start justify-between p-5 border-b border-solid rounded-t border-border shrink-0">
                         <h3 className="text-xl font-semibold text-secondary">
                             {title}
                         </h3>
@@ -40,12 +40,12 @@ const Modal = ({ isOpen, onClose, title, children, actions }) => {
                         </button>
                     </div>
 
-                    <div className="relative p-6 flex-auto">
+                    <div className="relative p-6 flex-auto overflow-y-auto">
                         {children}
                     </div>
 
                     {actions && (
-                        <div className="flex items-center justify-end p-5 border-t border-solid border-border rounded-b gap-3">
+                        <div className="flex items-center justify-end p-5 border-t border-solid border-border rounded-b gap-3 shrink-0">
                             {actions}
                         </div>
                     )}

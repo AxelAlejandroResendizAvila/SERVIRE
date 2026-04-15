@@ -150,6 +150,7 @@ const AdminPanel = () => {
     const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [motivo, setMotivo] = useState('');
+    const [motivoModal, setMotivoModal] = useState({ open: false, motivo: '' });
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -338,6 +339,7 @@ const AdminPanel = () => {
                                     <th className="py-3 px-6">Espacio</th>
                                     <th className="py-3 px-6">Fecha</th>
                                     <th className="py-3 px-6">Horario</th>
+                                    <th className="py-3 px-6">Solicitada</th>
                                     <th className="py-3 px-6">Estado</th>
                                     <th className="py-3 px-6 text-right">Acciones</th>
                                 </tr>
@@ -373,37 +375,43 @@ const AdminPanel = () => {
                                                 <CountdownTimer startDateRaw={req.startDateRaw} endDateRaw={req.endDateRaw} date={req.date} time={req.time} />
                                             )}
                                         </td>
+                                        <td className="py-4 px-6 text-gray-500 text-xs">
+                                            {req.createdAt ? new Date(req.createdAt).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                        </td>
                                         <td className="py-4 px-6">
-                                            {(() => {
-                                                const isExpired = isReservationExpired(req.endDateRaw, req.date, req.time);
-                                                const statusLabel = 
-                                                    req.status === 'pending' ? 'Pendiente' :
-                                                    req.status === 'approved' && isExpired ? 'Terminada' :
-                                                    req.status === 'approved' ? 'Activa' :
-                                                    req.status === 'completed' ? 'Terminada' :
-                                                    'Rechazada';
-                                                
-                                                // Color del badge: gris para terminadas, rojo para rechazadas
-                                                const statusType = 
-                                                    isExpired || req.status === 'completed' ? 'declined' :
-                                                    req.status === 'declined' ? 'declined' : 
-                                                    req.status;
-                                                
-                                                return (
-                                                    <Badge
-                                                        status={statusType}
-                                                        label={statusLabel}
-                                                    />
-                                                );
-                                            })()}
-                                            {req.status === 'declined' && req.motivo_rechazo && (
-                                                <div className="mt-2 text-xs text-red-600 bg-red-50 p-1.5 rounded flex items-start max-w-[200px]">
-                                                    <AlertTriangle size={12} className="mr-1 mt-0.5 shrink-0" />
-                                                    <span className="break-words line-clamp-2" title={req.motivo_rechazo}>
-                                                        {req.motivo_rechazo}
-                                                    </span>
-                                                </div>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {(() => {
+                                                    const isExpired = isReservationExpired(req.endDateRaw, req.date, req.time);
+                                                    const statusLabel = 
+                                                        req.status === 'pending' ? 'Pendiente' :
+                                                        req.status === 'approved' && isExpired ? 'Terminada' :
+                                                        req.status === 'approved' ? 'Activa' :
+                                                        req.status === 'completed' ? 'Terminada' :
+                                                        'Rechazada';
+                                                    
+                                                    // Color del badge: gris para terminadas, rojo para rechazadas
+                                                    const statusType = 
+                                                        isExpired || req.status === 'completed' ? 'declined' :
+                                                        req.status === 'declined' ? 'declined' : 
+                                                        req.status;
+                                                    
+                                                    return (
+                                                        <Badge
+                                                            status={statusType}
+                                                            label={statusLabel}
+                                                        />
+                                                    );
+                                                })()}
+                                                {req.status === 'declined' && req.motivo_rechazo && (
+                                                    <button
+                                                        onClick={() => setMotivoModal({ open: true, motivo: req.motivo_rechazo })}
+                                                        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors text-xs font-bold shrink-0"
+                                                        title="Ver motivo completo"
+                                                    >
+                                                        !
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="py-4 px-6 text-right">
                                             <div className="flex justify-end gap-2">
@@ -442,7 +450,7 @@ const AdminPanel = () => {
 
                                 {filteredRequests.length === 0 && (
                                     <tr>
-                                        <td colSpan="7" className="py-12 text-center text-gray-400">
+                                        <td colSpan="8" className="py-12 text-center text-gray-400">
                                             <Clock size={40} className="mx-auto mb-3 opacity-50" />
                                             <p className="font-medium text-gray-500">
                                                 {activeTab === 'pending' ? 'No hay solicitudes pendientes' :
@@ -503,6 +511,29 @@ const AdminPanel = () => {
                             value={motivo}
                             onChange={(e) => setMotivo(e.target.value)}
                         />
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal para mostrar motivo completo */}
+            <Modal
+                isOpen={motivoModal.open}
+                onClose={() => setMotivoModal({ open: false, motivo: '' })}
+                title="Motivo de Rechazo"
+            >
+                <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                            {motivoModal.motivo}
+                        </p>
+                    </div>
+                    <div className="flex justify-end">
+                        <Button
+                            variant="outline"
+                            onClick={() => setMotivoModal({ open: false, motivo: '' })}
+                        >
+                            Cerrar
+                        </Button>
                     </div>
                 </div>
             </Modal>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useBadge } from '../context/BadgeContext';
 import { getMyReservations, cancelReservation } from '../services/api';
@@ -120,6 +121,8 @@ export default function MisReservas({ navigation, route }) {
     const [loading, setLoading] = useState(true);
     const [canceling, setCanceling] = useState(null);
     const [error, setError] = useState('');
+    const [rejectReasonModalVisible, setRejectReasonModalVisible] = useState(false);
+    const [selectedRejectReason, setSelectedRejectReason] = useState('');
     const { clearBadge } = useBadge();
 
     useEffect(() => {
@@ -190,30 +193,9 @@ export default function MisReservas({ navigation, route }) {
         );
     };
 
-    const handleDeleteHistory = (id) => {
-        Alert.alert(
-            'Eliminar del historial',
-            '¿Seguro que quieres eliminar este registro de tu historial?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Eliminar',
-                    onPress: async () => {
-                        setCanceling(id);
-                        try {
-                            await cancelReservation(id);
-                            Alert.alert('Éxito', 'Reserva eliminada del historial');
-                            fetchReservations();
-                        } catch (error) {
-                            Alert.alert('Error', error.message || 'Error al eliminar la reserva');
-                        } finally {
-                            setCanceling(null);
-                        }
-                    },
-                    style: 'destructive',
-                }
-            ]
-        );
+    const showRejectReason = (reason) => {
+        setSelectedRejectReason(reason);
+        setRejectReasonModalVisible(true);
     };
 
     const getStatusColor = (reservation) => {
@@ -330,7 +312,13 @@ export default function MisReservas({ navigation, route }) {
                 </View>
             ) : (
                 list.map((reservation, index) => (
-                    <Card key={`${reservation.id}-${index}`} style={styles.reservationCard}>
+                    <AnimatedCard
+                        key={`${reservation.id}-${index}`}
+                        animation="fadeUp"
+                        delay={index * 80}
+                        duration={500}
+                    >
+                        <Card style={styles.reservationCard}>
                         {/* Cabecera de la Tarjeta */}
                         <View style={styles.cardHeader}>
                             <View style={styles.spaceInfo}>
@@ -363,7 +351,7 @@ export default function MisReservas({ navigation, route }) {
                                     </View>
                                 </View>
 
-                                {reservation.status === 'approved' && !isReservationPast(reservation.date, reservation.time) && (
+                                {(reservation.status === 'approved' || reservation.status === 'pending' || reservation.status === 'waitlisted') && !isReservationPast(reservation.date, reservation.time) && (
                                     <CountdownTimer date={reservation.date} time={reservation.time} />
                                 )}
                             </View>
@@ -390,29 +378,23 @@ export default function MisReservas({ navigation, route }) {
 
                                 {reservation.createdAt && (
                                     <View style={styles.infoRow}>
-                                        <Ionicons name="time-outline" size={14} color={theme.colors.text.secondary} />
-                                        <Text style={styles.infoText}>Solicitada: {reservation.createdAt}</Text>
-                                    </View>
-                                )}
-
-                                {/* Motivo de la reserva (si existe) */}
-                                {reservation.motivo && (
-                                    <View style={styles.bookingReasonContainer}>
-                                        <Ionicons name="bookmark-outline" size={14} color={theme.colors.text.secondary} />
-                                        <Text style={styles.bookingReasonText} numberOfLines={3}>
-                                            <Text style={{ fontWeight: '600' }}>Motivo: </Text>{reservation.motivo}
-                                        </Text>
+                                        <Ionicons name="calendar-outline" size={14} color={theme.colors.text.secondary} />
+                                        <Text style={styles.infoText}>Solicitada: {new Date(reservation.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</Text>
                                     </View>
                                 )}
 
                                 {/* Motivo de rechazo (si fue cancelada) */}
                                 {reservation.status === 'declined' && reservation.motivo_rechazo && (
-                                    <View style={styles.reasonContainer}>
+                                    <TouchableOpacity
+                                        style={styles.reasonButton}
+                                        onPress={() => showRejectReason(reservation.motivo_rechazo)}
+                                    >
                                         <Ionicons name="information-circle-outline" size={16} color={theme.colors.error} />
-                                        <Text style={styles.reasonText} numberOfLines={3}>
-                                            <Text style={{ fontWeight: '600' }}>Motivo rechazo: </Text>{reservation.motivo_rechazo}
+                                        <Text style={styles.reasonButtonText} numberOfLines={1}>
+                                            Ver motivo de rechazo
                                         </Text>
-                                    </View>
+                                        <Ionicons name="chevron-forward-outline" size={16} color={theme.colors.error} />
+                                    </TouchableOpacity>
                                 )}
                             </View>
                         </View>
@@ -446,27 +428,8 @@ export default function MisReservas({ navigation, route }) {
                                 </TouchableOpacity>
                             </View>
                         )}
-
-                        {/* Botones de acción - Historial */}
-                        {(reservation.status === 'declined' || isReservationPast(reservation.date, reservation.time)) && (
-                            <View style={styles.actionsContainer}>
-                                <TouchableOpacity
-                                    style={styles.cancelButton}
-                                    onPress={() => handleDeleteHistory(reservation.id)}
-                                    disabled={canceling === reservation.id}
-                                >
-                                    {canceling === reservation.id ? (
-                                        <ActivityIndicator size="small" color={theme.colors.error} />
-                                    ) : (
-                                        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
-                                    )}
-                                    <Text style={styles.cancelButtonText}>
-                                        {canceling === reservation.id ? 'Eliminando...' : 'Eliminar del historial'}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
                     </Card>
+                    </AnimatedCard>
                 ))
             )}
         </>
@@ -520,6 +483,43 @@ export default function MisReservas({ navigation, route }) {
                     renderReservationsList(activeTab === 'pending' ? pendingReservations : pastReservations)
                 )}
             </ScrollView>
+
+            {/* Modal para mostrar motivo de rechazo completo */}
+            <Modal
+                visible={rejectReasonModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setRejectReasonModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setRejectReasonModalVisible(false)}
+                >
+                    <TouchableOpacity
+                        style={styles.rejectReasonModal}
+                        onPress={() => {}}
+                        activeOpacity={1}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Ionicons name="alert-circle-outline" size={24} color={theme.colors.error} />
+                            <Text style={styles.modalTitle}>Motivo de Rechazo</Text>
+                            <TouchableOpacity onPress={() => setRejectReasonModalVisible(false)}>
+                                <Ionicons name="close-outline" size={24} color={theme.colors.text.primary} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={styles.modalContent}>
+                            <Text style={styles.modalReasonText}>{selectedRejectReason}</Text>
+                        </ScrollView>
+                        <TouchableOpacity
+                            style={styles.modalCloseButton}
+                            onPress={() => setRejectReasonModalVisible(false)}
+                        >
+                            <Text style={styles.modalCloseButtonText}>Entendido</Text>
+                        </TouchableOpacity>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -568,6 +568,7 @@ const styles = StyleSheet.create({
     listContainer: {
         padding: theme.spacing.lg,
         paddingBottom: theme.spacing.xl * 2,
+        alignItems: 'center',
     },
     emptyContainer: {
         flex: 1,
@@ -859,5 +860,71 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         fontWeight: '700',
         fontSize: 14,
+    },
+    reasonButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm + 2,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.borderRadius.md,
+        backgroundColor: theme.colors.error + '15',
+        gap: theme.spacing.sm,
+    },
+    reasonButtonText: {
+        flex: 1,
+        fontSize: 13,
+        color: theme.colors.error,
+        fontWeight: '600',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    rejectReasonModal: {
+        backgroundColor: theme.colors.surface || '#ffffff',
+        borderTopLeftRadius: theme.borderRadius.xl,
+        borderTopRightRadius: theme.borderRadius.xl,
+        maxHeight: '80%',
+        paddingTop: theme.spacing.lg,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border + '40',
+        gap: theme.spacing.md,
+    },
+    modalTitle: {
+        flex: 1,
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.text.primary,
+    },
+    modalContent: {
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.lg,
+    },
+    modalReasonText: {
+        fontSize: 14,
+        color: theme.colors.text.secondary,
+        lineHeight: 22,
+    },
+    modalCloseButton: {
+        marginHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
+        paddingVertical: theme.spacing.md + 2,
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.borderRadius.lg,
+        alignItems: 'center',
+    },
+    modalCloseButtonText: {
+        color: theme.colors.text.inverse || '#fff',
+        fontWeight: '700',
+        fontSize: 16,
     },
 });

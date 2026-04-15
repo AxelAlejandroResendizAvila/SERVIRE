@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
-router.post('/change-password', authController.changePassword);
+router.post('/change-password', authMiddleware, authController.changePassword);
+router.put('/update-profile', authMiddleware, authController.updateProfile);
 router.get('/me', authMiddleware, authController.getMe);
 
 // Rutas de administración de usuarios (admin y operadores pueden ver la lista)

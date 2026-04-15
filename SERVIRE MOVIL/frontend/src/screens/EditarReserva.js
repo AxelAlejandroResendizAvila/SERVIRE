@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import InputField from '../components/InputField';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 import { updateReservation, getReservationById } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function EditarReserva({ navigation, route }) {
     const reservationId = route?.params?.id;
     const [reservation, setReservation] = useState(null);
+    const { error: showError, success: showSuccess } = useToast();
     const convertTo12hFormat = (time24) => {
         if (!time24) return '';
         try {
@@ -66,7 +69,7 @@ export default function EditarReserva({ navigation, route }) {
             setEndTime(endTimeStr);
         } catch (error) {
             console.error('Error fetching reservation:', error);
-            Alert.alert('Error', 'No se pudo cargar la reserva');
+            showError('No se pudo cargar la reserva');
             navigation.goBack();
         } finally {
             setLoading(false);
@@ -87,7 +90,7 @@ export default function EditarReserva({ navigation, route }) {
 
     const handleSave = async () => {
         if (!date || !startTime || !endTime) {
-            Alert.alert('Error', 'Por favor completa todos los campos');
+            showError('Por favor completa todos los campos');
             return;
         }
 
@@ -96,7 +99,7 @@ export default function EditarReserva({ navigation, route }) {
         const [endHour, endMin] = endTime.split(':').map(Number);
 
         if (isNaN(startHour) || isNaN(endHour)) {
-            Alert.alert('Error', 'Formato de hora incorrecto');
+            showError('Formato de hora incorrecto');
             return;
         }
 
@@ -104,7 +107,7 @@ export default function EditarReserva({ navigation, route }) {
         const endTotalMin = endHour * 60 + (endMin || 0);
 
         if (endTotalMin <= startTotalMin) {
-            Alert.alert('Error', 'La hora de fin debe ser posterior a la de inicio');
+            showError('La hora de fin debe ser posterior a la de inicio');
             return;
         }
 
@@ -120,19 +123,11 @@ export default function EditarReserva({ navigation, route }) {
                 precio_total: reservation.precio_total || 0,
             });
 
-            Alert.alert(
-                'Éxito',
-                'Reserva actualizada correctamente',
-                [
-                    {
-                        text: 'OK',
-                        onPress: () => navigation.goBack(),
-                    }
-                ]
-            );
+            showSuccess('Reserva actualizada correctamente');
+            setTimeout(() => navigation.goBack(), 1500);
         } catch (error) {
             console.error('Error updating reservation:', error);
-            Alert.alert('Error', error.message || 'Error al actualizar la reserva');
+            showError(error.message || 'Error al actualizar la reserva');
         } finally {
             setUpdating(false);
         }
@@ -164,25 +159,27 @@ export default function EditarReserva({ navigation, route }) {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
-                <Card style={styles.infoCard}>
-                    <View style={styles.iconContainer}>
-                        <Ionicons name="business" size={24} color={theme.colors.primary} />
-                    </View>
-                    <View style={styles.infoDetails}>
-                        <Text style={styles.infoName}>{reservation.espacio_nombre}</Text>
-                        <Text style={styles.infoType}>
-                            Capacidad: {reservation.capacidad} personas
-                        </Text>
-                        <View style={[styles.statusPill, { backgroundColor: theme.colors.status.warning + '20' }]}>
-                            <Text style={[styles.statusText, { color: theme.colors.status.warning }]}>
-                                Pendiente
-                            </Text>
+                <AnimatedCard animation="fadeUp" delay={0} duration={500}>
+                    <Card style={styles.infoCard}>
+                        <View style={styles.iconContainer}>
+                            <Ionicons name="business" size={24} color={theme.colors.primary} />
                         </View>
-                    </View>
-                </Card>
+                        <View style={styles.infoDetails}>
+                            <Text style={styles.infoName}>{reservation.espacio_nombre}</Text>
+                            <Text style={styles.infoType}>
+                                Capacidad: {reservation.capacidad} personas
+                            </Text>
+                            <View style={[styles.statusPill, { backgroundColor: theme.colors.status.warning + '20' }]}>
+                                <Text style={[styles.statusText, { color: theme.colors.status.warning }]}>
+                                    Pendiente
+                                </Text>
+                            </View>
+                        </View>
+                    </Card>
+                </AnimatedCard>
 
-                <View style={styles.formSection}>
-                    <Text style={styles.sectionTitle}>Fecha y Hora</Text>
+                <AnimatedCard animation="fadeUp" delay={100} duration={500}>
+                    <View style={styles.formSection}>\n                        <Text style={styles.sectionTitle}>Fecha y Hora</Text>
 
                     <InputField
                         label="Fecha (YYYY-MM-DD)"
@@ -217,16 +214,20 @@ export default function EditarReserva({ navigation, route }) {
                         </View>
                     </View>
                 </View>
+                </AnimatedCard>
 
-                <Card style={styles.summaryCard}>
+                <AnimatedCard animation="fadeUp" delay={200} duration={500}>
+                    <Card style={styles.summaryCard}>
                     <Text style={styles.summaryTitle}>Resumen</Text>
                     <View style={styles.summaryRow}>
                         <Text style={styles.summaryLabel}>Duración total:</Text>
                         <Text style={styles.summaryValue}>{calculateDuration()} horas</Text>
                     </View>
                 </Card>
+                </AnimatedCard>
 
-                <View style={styles.buttonContainer}>
+                <AnimatedCard animation="fadeUp" delay={300} duration={500}>
+                    <View style={styles.buttonContainer}>
                     <Button
                         title={updating ? "Guardando..." : "Guardar cambios"}
                         onPress={handleSave}
@@ -240,6 +241,7 @@ export default function EditarReserva({ navigation, route }) {
                         disabled={updating}
                     />
                 </View>
+                </AnimatedCard>
 
             </ScrollView>
         </View>

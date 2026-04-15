@@ -4,6 +4,7 @@ import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function DetallesReserva({ navigation }) {
@@ -18,50 +19,54 @@ export default function DetallesReserva({ navigation }) {
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
-                <View style={styles.statusHeader}>
-                    <View style={styles.statusPill}>
-                        <Text style={styles.statusText}>Confirmada</Text>
+                <AnimatedCard animation="fadeUp" delay={0} duration={500}>
+                    <View style={styles.statusHeader}>
+                        <View style={styles.statusPill}>
+                            <Text style={styles.statusText}>Confirmada</Text>
+                        </View>
+                        <Text style={styles.bookingId}>ID: #RES-89241</Text>
                     </View>
-                    <Text style={styles.bookingId}>ID: #RES-89241</Text>
-                </View>
+                </AnimatedCard>
 
-                <Card style={styles.infoCard}>
-                    <View style={styles.infoRow}>
-                        <View style={styles.iconCircle}>
-                            <Ionicons name="business-outline" size={20} color={theme.colors.primary} />
+                <AnimatedCard animation="fadeUp" delay={100} duration={500}>
+                    <Card style={styles.infoCard}>
+                        <View style={styles.infoRow}>
+                            <View style={styles.iconCircle}>
+                                <Ionicons name="business-outline" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.infoTextContainer}>
+                                <Text style={styles.infoLabel}>Espacio</Text>
+                                <Text style={styles.infoValue}>Laboratorio de Física</Text>
+                                <Text style={styles.infoSubValue}>Edificio A, Piso 2</Text>
+                            </View>
                         </View>
-                        <View style={styles.infoTextContainer}>
-                            <Text style={styles.infoLabel}>Espacio</Text>
-                            <Text style={styles.infoValue}>Laboratorio de Física</Text>
-                            <Text style={styles.infoSubValue}>Edificio A, Piso 2</Text>
-                        </View>
-                    </View>
 
-                    <View style={styles.divider} />
+                        <View style={styles.divider} />
 
-                    <View style={styles.infoRow}>
-                        <View style={styles.iconCircle}>
-                            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                        <View style={styles.infoRow}>
+                            <View style={styles.iconCircle}>
+                                <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.infoTextContainer}>
+                                <Text style={styles.infoLabel}>Fecha y Hora</Text>
+                                <Text style={styles.infoValue}>Lunes, 3 de Febrero</Text>
+                                <Text style={styles.infoSubValue}>10:00 AM - 12:00 PM</Text>
+                            </View>
                         </View>
-                        <View style={styles.infoTextContainer}>
-                            <Text style={styles.infoLabel}>Fecha y Hora</Text>
-                            <Text style={styles.infoValue}>Lunes, 3 de Febrero</Text>
-                            <Text style={styles.infoSubValue}>10:00 AM - 12:00 PM</Text>
-                        </View>
-                    </View>
 
-                    <View style={styles.divider} />
+                        <View style={styles.divider} />
 
-                    <View style={styles.infoRow}>
-                        <View style={styles.iconCircle}>
-                            <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+                        <View style={styles.infoRow}>
+                            <View style={styles.iconCircle}>
+                                <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.infoTextContainer}>
+                                <Text style={styles.infoLabel}>Reservado por</Text>
+                                <Text style={styles.infoValue}>Juan Pérez</Text>
+                            </View>
                         </View>
-                        <View style={styles.infoTextContainer}>
-                            <Text style={styles.infoLabel}>Reservado por</Text>
-                            <Text style={styles.infoValue}>Juan Pérez</Text>
-                        </View>
-                    </View>
-                </Card>
+                    </Card>
+                </AnimatedCard>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Motivo de la reserva</Text>

@@ -15,6 +15,7 @@ const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterRole, setFilterRole] = useState('Todos');
     const [actionLoading, setActionLoading] = useState(null);
     
     // Modal states
@@ -119,7 +120,9 @@ const UserManagement = () => {
 
     const filteredUsers = users.filter(u => {
         const str = `${u.nombre} ${u.email} ${u.rol}`.toLowerCase();
-        return str.includes(searchQuery.toLowerCase());
+        const matchesSearch = str.includes(searchQuery.toLowerCase());
+        const matchesRole = filterRole === 'Todos' || u.rol === filterRole.toLowerCase();
+        return matchesSearch && matchesRole;
     });
 
     const adminCount = users.filter(u => u.rol === 'admin').length;
@@ -146,6 +149,16 @@ const UserManagement = () => {
                             className="w-full pl-10 pr-4 py-2 border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white"
                         />
                     </div>
+                    <select
+                        value={filterRole}
+                        onChange={(e) => setFilterRole(e.target.value)}
+                        className="px-4 py-2 border border-border rounded-button text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all bg-white w-full sm:w-auto"
+                    >
+                        <option value="Todos">Todos los roles</option>
+                        <option value="Admin">Administrador</option>
+                        <option value="Operador">Operador</option>
+                        <option value="Usuario">Usuario</option>
+                    </select>
                     <Button variant="outline" onClick={fetchUsers} disabled={loading} className="shrink-0 w-full sm:w-auto">
                         <RefreshCw size={16} className={`mr-1 ${loading ? 'animate-spin' : ''}`} /> Actualizar
                     </Button>
@@ -188,10 +201,11 @@ const UserManagement = () => {
                                 {filteredUsers.map((user) => {
                                     const isSelf = user.id === currentUser?.id;
                                     const canManageRole = isAdmin && !isSelf;
+                                    // Admin puede bloquear/desbloquear cualquiera (excepto admin)
+                                    // Operador puede bloquear/desbloquear usuarios (no operadores/admin)
                                     const canBlock = (isAdmin || isOperador)
                                         && user.rol !== 'admin'
                                         && !(isOperador && user.rol === 'operador')
-                                        && !(isOperador && user.bloqueado)
                                         && !isSelf;
                                     const canDelete = isAdmin && user.rol !== 'admin' && !isSelf;
 

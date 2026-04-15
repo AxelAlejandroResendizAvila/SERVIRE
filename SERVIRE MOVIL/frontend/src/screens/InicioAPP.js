@@ -4,6 +4,7 @@ import { theme } from '../theme/theme';
 import Header from '../components/Header';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import AnimatedCard from '../components/AnimatedCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useReservations } from '../hooks/useReservations';
@@ -20,73 +21,80 @@ export default function InicioAPP({ navigation }) {
     return (
         <View style={styles.container}>
             <Header 
-                title="Inicio" 
-                showLogo={true}
+                title="Inicio"
             />
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Saludo con Logo decorativo */}
-                <View style={styles.greetingContainer}>
-                    <View style={styles.greetingHeaderWithLogo}>
-                        <View style={styles.greetingTextContainer}>
-                            <Text style={styles.greetingTitle}>Hola, {userName}</Text>
-                            <Text style={styles.greetingSubtitle}>¿Qué espacio necesitas hoy?</Text>
+                <AnimatedCard animation="fadeUp" delay={0} duration={500}>
+                    <View style={styles.greetingContainer}>
+                        <View style={styles.greetingHeaderWithLogo}>
+                            <View style={styles.greetingTextContainer}>
+                                <Text style={styles.greetingTitle}>Hola, {userName}</Text>
+                                <Text style={styles.greetingSubtitle}>¿Qué espacio necesitas hoy?</Text>
+                            </View>
+                            <LogoSVG size={50} />
                         </View>
-                        <LogoSVG size={50} />
                     </View>
-                </View>
+                </AnimatedCard>
 
                 {/* Tarjeta de Nueva Reserva */}
-                <Card style={styles.newReservationCard}>
-                    <View style={styles.cardHeaderSimple}>
-                        <View style={styles.iconCircle}>
-                            <Ionicons name="add" size={24} color={theme.colors.primary} />
+                <AnimatedCard animation="fadeUp" delay={100} duration={500}>
+                    <Card style={styles.newReservationCard}>
+                        <View style={styles.cardHeaderSimple}>
+                            <View style={styles.iconCircle}>
+                                <Ionicons name="add" size={24} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.cardHeaderText}>
+                                <Text style={styles.cardTitle}>Nueva reserva</Text>
+                                <Text style={styles.cardSubtitle}>Programa tu próximo espacio</Text>
+                            </View>
                         </View>
-                        <View style={styles.cardHeaderText}>
-                            <Text style={styles.cardTitle}>Nueva reserva</Text>
-                            <Text style={styles.cardSubtitle}>Programa tu próximo espacio</Text>
-                        </View>
-                    </View>
-                    <Button
-                        title="Crear reserva"
-                        onPress={() => navigation.navigate('FormularioReservas')}
-                    />
-                </Card>
+                        <Button
+                            title="Crear reserva"
+                            onPress={() => navigation.navigate('FormularioReservas')}
+                        />
+                    </Card>
+                </AnimatedCard>
 
                 {/* Sección Simplificada: Resumen de Actividad */}
-                <Text style={styles.sectionTitle}>Tu actividad</Text>
+                <AnimatedCard animation="fadeUp" delay={200} duration={500}>
+                    <Text style={styles.sectionTitle}>Tu actividad</Text>
+                </AnimatedCard>
 
                 {loading ? (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={theme.colors.primary} />
                     </View>
                 ) : (
-                    <Card style={styles.summaryCard}>
-                        <View style={styles.summaryContent}>
-                            <View style={styles.summaryIconContainer}>
-                                <Ionicons name="calendar" size={28} color={theme.colors.primary} />
+                    <AnimatedCard animation="fadeUp" delay={300} duration={500}>
+                        <Card style={styles.summaryCard}>
+                            <View style={styles.summaryContent}>
+                                <View style={styles.summaryIconContainer}>
+                                    <Ionicons name="calendar" size={28} color={theme.colors.primary} />
+                                </View>
+                                <View style={styles.summaryTextContainer}>
+                                    <Text style={styles.summaryTitle}>Espacios disponibles</Text>
+                                    <Text style={styles.summarySubtitle}>
+                                        Tuviste {totalReservations} {totalReservations === 1 ? 'reserva registrada' : 'reservas registradas'}
+                                    </Text>
+                                </View>
                             </View>
-                            <View style={styles.summaryTextContainer}>
-                                <Text style={styles.summaryTitle}>Espacios disponibles</Text>
-                                <Text style={styles.summarySubtitle}>
-                                    Tuviste {totalReservations} {totalReservations === 1 ? 'reserva registrada' : 'reservas registradas'}
-                                </Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity
-                            style={styles.summaryButton}
-                            onPress={() => navigation.navigate('Reservas')}
-                        >
-                            <Text style={styles.summaryButtonText}>Administrar</Text>
-                            <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
-                        </TouchableOpacity>
-                    </Card>
+                            <TouchableOpacity
+                                style={styles.summaryButton}
+                                onPress={() => navigation.navigate('Reservas')}
+                            >
+                                <Text style={styles.summaryButtonText}>Administrar</Text>
+                                <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
+                            </TouchableOpacity>
+                        </Card>
+                    </AnimatedCard>
                 )}
 
-                {/* Acciones Rápidas */}
-                <Text style={styles.sectionTitle}>Acciones rápidas</Text>
-                <View style={styles.quickActionsContainer}>
+                <AnimatedCard animation="fadeUp" delay={400} duration={500}>
+                    <Text style={styles.sectionTitle}>Acciones rápidas</Text>
+                    <View style={styles.quickActionsContainer}>
                     <TouchableOpacity style={styles.quickActionItem} onPress={() => navigation.navigate('Explorar')}>
                         <View style={styles.quickActionIcon}>
                             <Ionicons name="search-outline" size={24} color={theme.colors.primary} />
@@ -111,9 +119,10 @@ export default function InicioAPP({ navigation }) {
                         <Text style={styles.quickActionSubText}>cuenta</Text>
                     </TouchableOpacity>
                 </View>
+                </AnimatedCard>
 
-                {/* Tip/Info Card innovadora */}
-                <View style={styles.tipCard}>
+                <AnimatedCard animation="fadeUp" delay={500} duration={500}>
+                    <View style={styles.tipCard}>
                     <View style={styles.tipIconContainer}>
                         <Ionicons name="bulb-outline" size={24} color="#FFF" />
                     </View>
@@ -121,7 +130,8 @@ export default function InicioAPP({ navigation }) {
                         <Text style={styles.tipTitle}>¿Sabías qué?</Text>
                         <Text style={styles.tipBody}>Puedes reservar espacios hasta con 1 hora de anticipación. Planifica tus actividades.</Text>
                     </View>
-                </View>
+                    </View>
+                </AnimatedCard>
 
             </ScrollView>
         </View>

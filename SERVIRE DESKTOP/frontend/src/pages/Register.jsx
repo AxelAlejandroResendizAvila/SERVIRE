@@ -96,6 +96,16 @@ const Register = () => {
             isValid = false;
         }
 
+        // Validar que no use solo números (matrículas)
+        const emailPart = formData.email.split('@')[0];
+        if (/^\d+$/.test(emailPart)) {
+            setErrors(prev => ({
+                ...prev,
+                email: 'No puedes usar solo números (matrículas) como correo'
+            }));
+            isValid = false;
+        }
+
         if (!isValid) return;
 
         setLoading(true);

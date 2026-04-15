@@ -46,14 +46,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      console.log('🔐 Iniciando login para:', email);
       const response = await apiAuthLogin(email, password);
-      console.log('✅ Respuesta de login recibida:', response);
       const { usuario, token } = response;
-      
-      // Verificar que el token se guardó
-      const savedToken = await getToken();
-      console.log('📝 Token guardado en AsyncStorage:', savedToken ? '✅ Sí' : '❌ No');
       
       setUser(usuario);
       return response;
@@ -131,12 +125,34 @@ export const AuthProvider = ({ children }) => {
   const changePassword = async (passwordActual, passwordNueva) => {
     try {
       setLoading(true);
+      const token = await getToken();
       const response = await axios.post(`${config.baseURL}/auth/change-password`, {
-        id_usuario: user.id,
         passwordActual,
         passwordNueva,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (nombre, telefono) => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const response = await axios.put(`${config.baseURL}/auth/update-profile`, {
+        nombre,
+        telefono,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setUser(response.data.usuario);
       return response.data;
     } catch (error) {
       throw error;
@@ -152,6 +168,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     changePassword,
+    updateProfile,
   };
 
   return (

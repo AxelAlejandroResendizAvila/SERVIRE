@@ -83,6 +83,7 @@ export const getMyReservations = async (req, res) => {
         r.estado,
         r.fecha_inicio as "startDateRaw",
         r.fecha_fin as "endDateRaw",
+        TO_CHAR(r.fecha_creacion, 'YYYY-MM-DD HH24:MI') as "createdAt",
         r.motivo_estado,
         (
           SELECT COUNT(*) FROM reservas r2 
@@ -119,6 +120,7 @@ export const getMyReservations = async (req, res) => {
                 time: row.time,
                 startDateRaw: row.startDateRaw,
                 endDateRaw: row.endDateRaw,
+                createdAt: row.createdAt,
                 status,
                 motivo_rechazo: row.motivo_estado, 
                 waitlistPosition: status === 'waitlisted' ? parseInt(row.queuePosition) : null,

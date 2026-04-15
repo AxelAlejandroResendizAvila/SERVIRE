@@ -87,10 +87,15 @@ export const login = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-    const { id_usuario, passwordActual, passwordNueva } = req.body;
+    const { passwordActual, passwordNueva } = req.body;
+    const userId = req.usuario;
 
     try {
-        const userResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [id_usuario]);
+        if (!userId) {
+            return res.status(401).json({ error: 'No autenticado o sesión expirada' });
+        }
+
+        const userResult = await pool.query('SELECT * FROM usuarios WHERE id_usuario = $1', [userId]);
         if (userResult.rows.length === 0) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
@@ -107,7 +112,7 @@ export const changePassword = async (req, res) => {
 
         await pool.query('UPDATE usuarios SET contrasena_hash = $1 WHERE id_usuario = $2', [
             passwordNueva_hash,
-            id_usuario
+            userId
         ]);
 
         res.json({
@@ -115,7 +120,7 @@ export const changePassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Error al actualizar contraseña:', error);
         res.status(500).json({ error: 'Error al actualizar contraseña' });
     }
 };
@@ -278,7 +283,9 @@ export const transferAdmin = async (req, res) => {
     }
 };
 
-// Bloquear/desbloquear usuario (admin u operador pueden bloquear, pero solo admin puede desbloquear)
+// Bloquear/desbloquear usuario
+// Admin: puede bloquear/desbloquear a usuarios y operadores (no a otro admin)
+// Operador: puede bloquear/desbloquear a usuarios (no a operadores ni admin)
 export const toggleBlockUser = async (req, res) => {
     const { userId } = req.body;
     const requesterId = req.usuario;
@@ -296,7 +303,7 @@ export const toggleBlockUser = async (req, res) => {
 
         const targetUser = targetResult.rows[0];
 
-        // No bloquear al admin
+        // No se puede bloquear al admin
         if (targetUser.rol === 'admin') {
             return res.status(400).json({ error: 'No se puede bloquear al administrador' });
         }
@@ -306,11 +313,6 @@ export const toggleBlockUser = async (req, res) => {
             return res.status(400).json({ error: 'Los operadores no pueden bloquear a otros operadores' });
         }
 
-        // Operadores solo pueden bloquear; desbloquear es exclusivo de admin.
-        if (requesterRole === 'operador' && targetUser.bloqueado) {
-            return res.status(403).json({ error: 'Solo el administrador puede desbloquear cuentas' });
-        }
-
         // No bloquearse a sí mismo
         if (targetUser.id_usuario === requesterId) {
             return res.status(400).json({ error: 'No puedes bloquearte a ti mismo' });
@@ -318,11 +320,19 @@ export const toggleBlockUser = async (req, res) => {
 
         const newBlockedState = !targetUser.bloqueado;
 
+        // Si se va a bloquear, cancelar todas las reservas activas
+        if (newBlockedState) {
+            await pool.query(
+                "UPDATE reservas SET estado = 'cancelada', motivo_estado = 'Cuenta bloqueada por administrador' WHERE id_usuario = $1 AND estado IN ('pendiente', 'confirmada')",
+                [userId]
+            );
+        }
+
         await pool.query('UPDATE usuarios SET bloqueado = $1 WHERE id_usuario = $2', [newBlockedState, userId]);
 
         res.json({
             mensaje: newBlockedState 
-                ? `La cuenta de ${targetUser.nombre} ha sido bloqueada`
+                ? `La cuenta de ${targetUser.nombre} ha sido bloqueada y sus reservas canceladas`
                 : `La cuenta de ${targetUser.nombre} ha sido desbloqueada`,
             bloqueado: newBlockedState
         });
@@ -370,5 +380,46 @@ export const deleteUser = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al eliminar usuario' });
+    }
+};
+
+// Actualizar perfil del usuario (nombre y teléfono)
+export const updateProfile = async (req, res) => {
+    const { nombre, telefono } = req.body;
+    const userId = req.usuario;
+
+    try {
+        // Validar que existe el userId
+        if (!userId) {
+            return res.status(401).json({ error: 'No autenticado o sesión expirada' });
+        }
+
+        if (!nombre || !telefono) {
+            return res.status(400).json({ error: 'El nombre y teléfono son requeridos' });
+        }
+
+        // Validar teléfono: mínimo 10 dígitos
+        const telefonoDigitos = telefono.replace(/\D/g, '');
+        if (telefonoDigitos.length < 10) {
+            return res.status(400).json({ error: 'El teléfono debe tener al menos 10 dígitos' });
+        }
+
+        const result = await pool.query(
+            'UPDATE usuarios SET nombre = $1, telefono = $2 WHERE id_usuario = $3 RETURNING id_usuario as id, nombre, email, rol, telefono',
+            [nombre.trim(), telefono.trim(), userId]
+        );
+
+        if (result.rows.length === 0) {
+            console.error(`Usuario no encontrado: ${userId}`);
+            return res.status(404).json({ error: 'Usuario no encontrado. Intenta iniciar sesión de nuevo.' });
+        }
+
+        res.json({
+            mensaje: 'Perfil actualizado correctamente',
+            usuario: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error al actualizar perfil:', error);
+        res.status(500).json({ error: 'Error al actualizar perfil' });
     }
 };

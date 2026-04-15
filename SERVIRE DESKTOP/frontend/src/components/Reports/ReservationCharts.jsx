@@ -165,9 +165,148 @@ const ReservationCharts = () => {
         setMonthlyData(monthlyArray);
     };
 
+    // Función para generar datos de tendencia según el filtro
+    const generateTrendData = (reservations, mode) => {
+        const now = new Date();
+        
+        if (mode === 'hoy') {
+            // Por horas del día actual
+            const hourlyStats = {};
+            for (let i = 0; i < 24; i++) {
+                const key = `${i.toString().padStart(2, '0')}:00`;
+                hourlyStats[key] = { confirmadas: 0, rechazadas: 0 };
+            }
+            reservations.forEach(r => {
+                if (r.startDateRaw) {
+                    const date = new Date(r.startDateRaw);
+                    const hour = `${date.getHours().toString().padStart(2, '0')}:00`;
+                    if (hourlyStats[hour]) {
+                        if (r.status === 'approved' || r.status === 'completed') {
+                            hourlyStats[hour].confirmadas++;
+                        } else if (r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled') {
+                            hourlyStats[hour].rechazadas++;
+                        }
+                    }
+                }
+            });
+            return Object.entries(hourlyStats).map(([hour, data]) => ({ 
+                periodo: hour, 
+                confirmadas: data.confirmadas, 
+                rechazadas: data.rechazadas 
+            }));
+        } else if (mode === 'semana') {
+            // Por días de esta semana
+            const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            const weeklyStats = {};
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - now.getDay() + 1 + i);
+                const key = d.toISOString().split('T')[0];
+                weeklyStats[key] = { confirmadas: 0, rechazadas: 0, dayName: dayNames[i] };
+            }
+            reservations.forEach(r => {
+                if (r.startDateRaw) {
+                    const dateKey = r.startDateRaw.split('T')[0];
+                    if (weeklyStats[dateKey]) {
+                        if (r.status === 'approved' || r.status === 'completed') {
+                            weeklyStats[dateKey].confirmadas++;
+                        } else if (r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled') {
+                            weeklyStats[dateKey].rechazadas++;
+                        }
+                    }
+                }
+            });
+            return Object.entries(weeklyStats).map(([date, data]) => ({ 
+                periodo: data.dayName, 
+                confirmadas: data.confirmadas, 
+                rechazadas: data.rechazadas 
+            }));
+        } else if (mode === 'mes') {
+            // Por días del mes actual
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const monthlyDayStats = {};
+            for (let i = 1; i <= daysInMonth; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth(), i);
+                const key = d.toISOString().split('T')[0];
+                monthlyDayStats[key] = { confirmadas: 0, rechazadas: 0 };
+            }
+            reservations.forEach(r => {
+                if (r.startDateRaw) {
+                    const dateKey = r.startDateRaw.split('T')[0];
+                    if (monthlyDayStats[dateKey]) {
+                        if (r.status === 'approved' || r.status === 'completed') {
+                            monthlyDayStats[dateKey].confirmadas++;
+                        } else if (r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled') {
+                            monthlyDayStats[dateKey].rechazadas++;
+                        }
+                    }
+                }
+            });
+            return Object.entries(monthlyDayStats).map(([date, data], idx) => ({ 
+                periodo: (idx + 1).toString(), 
+                confirmadas: data.confirmadas, 
+                rechazadas: data.rechazadas 
+            }));
+        } else if (mode === 'ano') {
+            // Por meses del año actual
+            const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            const yearlyStats = {};
+            for (let i = 0; i < 12; i++) {
+                yearlyStats[i] = { confirmadas: 0, rechazadas: 0, monthName: monthNames[i] };
+            }
+            reservations.forEach(r => {
+                if (r.startDateRaw) {
+                    const date = new Date(r.startDateRaw);
+                    const monthIdx = date.getMonth();
+                    if (r.status === 'approved' || r.status === 'completed') {
+                        yearlyStats[monthIdx].confirmadas++;
+                    } else if (r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled') {
+                        yearlyStats[monthIdx].rechazadas++;
+                    }
+                }
+            });
+            return Object.entries(yearlyStats).map(([idx, data]) => ({ 
+                periodo: data.monthName, 
+                confirmadas: data.confirmadas, 
+                rechazadas: data.rechazadas 
+            }));
+        } else if (mode === 'rango') {
+            // Por días en el rango personalizado
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const rangeStats = {};
+            const current = new Date(start);
+            while (current <= end) {
+                const key = current.toISOString().split('T')[0];
+                rangeStats[key] = { confirmadas: 0, rechazadas: 0 };
+                current.setDate(current.getDate() + 1);
+            }
+            reservations.forEach(r => {
+                if (r.startDateRaw) {
+                    const dateKey = r.startDateRaw.split('T')[0];
+                    if (rangeStats[dateKey]) {
+                        if (r.status === 'approved' || r.status === 'completed') {
+                            rangeStats[dateKey].confirmadas++;
+                        } else if (r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled') {
+                            rangeStats[dateKey].rechazadas++;
+                        }
+                    }
+                }
+            });
+            return Object.entries(rangeStats).map(([date, data]) => ({ 
+                periodo: new Date(date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }), 
+                confirmadas: data.confirmadas, 
+                rechazadas: data.rechazadas 
+            }));
+        }
+        
+        return [];
+    };
+
     // --- VARIABLES DE RESUMEN GLOBALES (Necesarias para el PDF y el Excel estructurado) ---
     const currentTotalReq = displayStats.reduce((sum, s) => sum + s.totalCount, 0);
     const currentConfirmed = displayStats.reduce((sum, s) => sum + s.confirmedCount, 0);
+    const currentRejected = filteredRequests.filter(r => r.status === 'declined' || r.status === 'rejected' || r.status === 'cancelled').length;
     const currentRate = currentTotalReq > 0 ? Math.round((currentConfirmed / currentTotalReq) * 100) : 0;
 
     // 3. EXPORTAR A EXCEL (CSV ESTRUCTURADO)
@@ -219,6 +358,7 @@ const ReservationCharts = () => {
         try {
             const totalReservasFiltro = filteredRequests.length;
             const totalConfirmadasFiltro = filteredRequests.filter(r => r.status === 'approved' || r.status === 'completed').length;
+            const totalRechazadasFiltro = currentRejected;
             const tasaConfirmacionFiltro = totalReservasFiltro > 0 ? Math.round((totalConfirmadasFiltro / totalReservasFiltro) * 100) : 0;
 
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -316,6 +456,68 @@ const ReservationCharts = () => {
                 y += 4;
             };
 
+            // Función para dibujar una gráfica de línea simple con Canvas
+            const drawTrendChart = (title, trendData, color) => {
+                drawSectionTitle(title, color);
+                if (!trendData.length) {
+                    addPageIfNeeded(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.text('Sin datos disponibles para la tendencia.', margin + 2, y);
+                    y += 10;
+                    return;
+                }
+
+                addPageIfNeeded(50);
+                const chartWidth = contentWidth;
+                const chartHeight = 40;
+                
+                // Datos para la gráfica
+                const maxValue = Math.max(...trendData.map(d => Math.max(d.confirmadas, d.rechazadas)), 1);
+                const barWidth = (chartWidth - 4) / trendData.length;
+                
+                // Dibujar barras
+                trendData.forEach((d, idx) => {
+                    const xBar = margin + 2 + idx * barWidth;
+                    const confirmHeight = (d.confirmadas / maxValue) * chartHeight * 0.8;
+                    const rejectHeight = (d.rechazadas / maxValue) * chartHeight * 0.8;
+                    
+                    // Barra confirmadas (verde)
+                    doc.setFillColor(34, 197, 94);
+                    doc.rect(xBar, y + chartHeight - confirmHeight, barWidth * 0.45, confirmHeight, 'F');
+                    
+                    // Barra rechazadas (rojo)
+                    doc.setFillColor(239, 68, 68);
+                    doc.rect(xBar + barWidth * 0.45, y + chartHeight - rejectHeight, barWidth * 0.45, rejectHeight, 'F');
+                });
+                
+                // Línea base
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin + 2, y + chartHeight, margin + chartWidth - 2, y + chartHeight);
+                
+                // Etiquetas X
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                trendData.forEach((d, idx) => {
+                    const xLabel = margin + 2 + idx * barWidth + barWidth / 2;
+                    doc.text(d.periodo, xLabel, y + chartHeight + 6, { align: 'center', maxWidth: barWidth });
+                });
+                
+                // Leyenda
+                y += chartHeight + 12;
+                addPageIfNeeded(8);
+                doc.setFillColor(34, 197, 94);
+                doc.rect(margin + 2, y, 3, 3, 'F');
+                doc.setTextColor(50, 50, 50);
+                doc.setFontSize(9);
+                doc.text('Confirmadas', margin + 7, y + 2.5);
+                
+                doc.setFillColor(239, 68, 68);
+                doc.rect(margin + 60, y, 3, 3, 'F');
+                doc.text('Rechazadas', margin + 65, y + 2.5);
+                y += 8;
+            };
+
             let periodoTexto = "Histórico General";
             if (reportMode === 'hoy') periodoTexto = "Reporte de Hoy";
             else if (reportMode === 'semana') periodoTexto = "Reporte de la Semana";
@@ -343,11 +545,15 @@ const ReservationCharts = () => {
             const gap = 4;
             const cardWidth = (contentWidth - gap * 3) / 4;
 
-            drawMetricCard(margin, y, cardWidth, 'Espacios Totales', stats.length, [71, 85, 105]);
-            drawMetricCard(margin + cardWidth + gap, y, cardWidth, 'Confirmadas', totalConfirmadasFiltro, [13, 148, 136]);
+            drawMetricCard(margin, y, cardWidth, 'Espacios', stats.length, [71, 85, 105]);
+            drawMetricCard(margin + (cardWidth + gap), y, cardWidth, 'Confirmadas', totalConfirmadasFiltro, [34, 197, 94]);
             drawMetricCard(margin + (cardWidth + gap) * 2, y, cardWidth, 'Solicitudes', totalReservasFiltro, [56, 189, 248]);
             drawMetricCard(margin + (cardWidth + gap) * 3, y, cardWidth, 'Efectividad', `${tasaConfirmacionFiltro}%`, [30, 41, 59]);
             y += 28;
+
+            // Gráfica de tendencia
+            const trendData = generateTrendData(filteredRequests, reportMode);
+            drawTrendChart('Tendencia de Reservas', trendData, [13, 148, 136]);
 
             drawTable('Top 5 Espacios Más Reservados', topSpaces, [15, 118, 110]);
             drawTable('Top 5 Espacios Menos Reservados (con actividad)', bottomSpaces, [194, 65, 12]);
@@ -548,29 +754,42 @@ const ReservationCharts = () => {
 
                 {/* Gráfica de Tendencia */}
                 <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm mb-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-slate-100 rounded-lg">
-                            <LineChartIcon className="text-slate-700" size={20} />
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-slate-100 rounded-lg">
+                                <LineChartIcon className="text-slate-700" size={20} />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">Tendencia de Reservas</h3>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-800">Tendencia Mensual en este Periodo</h3>
                     </div>
 
-                    {monthlyData.length > 0 && monthlyData.some(m => m.reservas > 0) ? (
-                        <ResponsiveContainer width="100%" height={280}>
-                            <LineChart data={monthlyData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                <Line type="monotone" dataKey="reservas" name="Reservas Aprobadas" stroke="#1e293b" strokeWidth={3} dot={{ fill: '#1e293b', r: 4, strokeWidth: 0 }} activeDot={{ r: 6, fill: '#0d9488', stroke: '#fff', strokeWidth: 2 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="h-[280px] flex flex-col items-center justify-center text-gray-400 text-sm">
-                            <XCircle size={32} className="mb-2 opacity-50" />
-                            No hay suficientes datos confirmados para graficar tendencia.
-                        </div>
-                    )}
+                    {(() => {
+                        const trendData = generateTrendData(filteredRequests, reportMode);
+                        return trendData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                                    <XAxis dataKey="periodo" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(value) => value}
+                                    />
+                                    <Legend 
+                                        iconType="square" 
+                                        wrapperStyle={{ fontSize: '12px', color: '#64748b', paddingTop: '10px' }} 
+                                    />
+                                    <Bar dataKey="confirmadas" name="Confirmadas" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={40} />
+                                    <Bar dataKey="rechazadas" name="Rechazadas" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-[300px] flex flex-col items-center justify-center text-gray-400 text-sm">
+                                <XCircle size={32} className="mb-2 opacity-50" />
+                                No hay datos suficientes para mostrar la tendencia.
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* Estadísticas Footer */}

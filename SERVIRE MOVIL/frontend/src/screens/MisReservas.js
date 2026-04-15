@@ -47,6 +47,12 @@ const CountdownTimer = ({ date, time }) => {
                 const [endHrs, endMins] = endTimeStr.split(':');
                 const [year, month, day] = date.split('-');
 
+                let endDay = parseInt(day, 10);
+                // Si la hora de fin es menor que la de inicio, cruza medianoche
+                if (parseInt(endHrs, 10) < parseInt(startHrs, 10)) {
+                    endDay += 1;
+                }
+
                 const startMs = Date.UTC(
                     parseInt(year, 10), 
                     parseInt(month, 10) - 1, 
@@ -58,7 +64,7 @@ const CountdownTimer = ({ date, time }) => {
                 const endMs = Date.UTC(
                     parseInt(year, 10), 
                     parseInt(month, 10) - 1, 
-                    parseInt(day, 10), 
+                    endDay, 
                     parseInt(endHrs, 10), 
                     parseInt(endMins, 10)
                 );

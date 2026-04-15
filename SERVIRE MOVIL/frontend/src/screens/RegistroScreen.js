@@ -152,7 +152,7 @@ export default function RegistroScreen({ navigation }) {
                     <AnimatedCard animation="fadeUp" delay={250} duration={500}>
                         <InputField
                             label="Telefono"
-                            placeholder="+52 442 456 789"
+                            placeholder="10 dígitos ej: 5512345678"
                             value={telefono}
                             onChangeText={setTelefono}
                             keyboardType="phone-pad"

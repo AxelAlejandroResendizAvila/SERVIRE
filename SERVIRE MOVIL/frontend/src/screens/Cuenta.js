@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
@@ -16,7 +16,7 @@ export default function Cuenta({ navigation }) {
     // Estados para editar perfil
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editName, setEditName] = useState(user?.nombre || '');
-    const [editPhone, setEditPhone] = useState(user?.telefono || '');
+    const [editPhone, setEditPhone] = useState(user?.telefono ? user.telefono.replace(/\D/g, '').slice(-10) : '');
     
     // Estados para cambiar contraseña
     const [currentPassword, setCurrentPassword] = useState('');
@@ -24,6 +24,14 @@ export default function Cuenta({ navigation }) {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loadingPassword, setLoadingPassword] = useState(false);
     const [error, setError] = useState('');
+
+    // Actualizar campos cuando cambia el usuario
+    useEffect(() => {
+        if (user) {
+            setEditName(user.nombre || '');
+            setEditPhone(user.telefono ? user.telefono.replace(/\D/g, '').slice(-10) : '');
+        }
+    }, [user]);
 
     // Extract user initials
     const getInitials = (nombre) => {
@@ -157,7 +165,7 @@ export default function Cuenta({ navigation }) {
                             {!isEditingProfile && (
                                 <TouchableOpacity onPress={() => {
                                     setEditName(user.nombre);
-                                    setEditPhone(user.telefono || '');
+                                    setEditPhone(user.telefono ? user.telefono.replace(/\D/g, '').slice(-10) : '');
                                     setIsEditingProfile(true);
                                 }}>
                                     <Ionicons name="pencil" size={20} color={theme.colors.primary} />
@@ -181,7 +189,7 @@ export default function Cuenta({ navigation }) {
                                         label="Teléfono"
                                         value={editPhone}
                                         onChangeText={setEditPhone}
-                                        placeholder="Tu número de teléfono"
+                                        placeholder="10 dígitos ej: 5512345678"
                                         keyboardType="phone-pad"
                                         editable={!loadingPassword}
                                     />
@@ -212,12 +220,10 @@ export default function Cuenta({ navigation }) {
                                     <Text style={styles.infoLabel}>Correo electrónico</Text>
                                     <Text style={styles.infoValue}>{user.email}</Text>
                                 </View>
-                                {user.telefono && (
-                                    <View style={styles.infoField}>
-                                        <Text style={styles.infoLabel}>Teléfono</Text>
-                                        <Text style={styles.infoValue}>{user.telefono}</Text>
-                                    </View>
-                                )}
+                                <View style={styles.infoField}>
+                                    <Text style={styles.infoLabel}>Teléfono</Text>
+                                    <Text style={styles.infoValue}>{user.telefono || 'No registrado'}</Text>
+                                </View>
                             </>
                         )}
                     </View>

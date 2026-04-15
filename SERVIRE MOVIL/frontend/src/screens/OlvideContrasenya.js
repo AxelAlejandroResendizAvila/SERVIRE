@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { theme } from '../theme/theme';
 import Header from '../components/Header';
@@ -9,10 +9,17 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function OlvideContrasenya({ navigation }) {
-    const [telefono, setTelefono] = useState('');
-    const [loading, setLoading] = useState(false);
-    const { requestPasswordReset } = useAuth();
+    const { user, requestPasswordReset } = useAuth();
     const { error: showError, success: showSuccess } = useToast();
+    const [telefono, setTelefono] = useState(user?.telefono ? user.telefono.replace(/\D/g, '').slice(-10) : '');
+    const [loading, setLoading] = useState(false);
+
+    // Actualizar teléfono cuando cambia el usuario
+    useEffect(() => {
+        if (user?.telefono) {
+            setTelefono(user.telefono.replace(/\D/g, '').slice(-10));
+        }
+    }, [user?.telefono]);
 
     const handleRequestReset = async () => {
         if (!telefono.trim()) {
@@ -64,7 +71,7 @@ export default function OlvideContrasenya({ navigation }) {
                             label="Número de teléfono"
                             value={telefono}
                             onChangeText={setTelefono}
-                            placeholder="4425432233"
+                            placeholder="10 dígitos ej: 5512345678"
                             keyboardType="phone-pad"
                             editable={!loading}
                             maxLength={10}

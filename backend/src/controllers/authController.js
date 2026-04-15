@@ -22,7 +22,7 @@ export const register = async (req, res) => {
         const contrasena_hash = await bcrypt.hash(contrasena, salt);
 
         const newUser = await pool.query(
-            'INSERT INTO usuarios (nombre, apellidos, email, contrasena_hash, telefono, rol) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_usuario, nombre, email, rol',
+            'INSERT INTO usuarios (nombre, apellidos, email, contrasena_hash, telefono, rol) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_usuario, nombre, email, rol, telefono',
             [nombre, apellidos, email, contrasena_hash, telefono, 'usuario']
         );
 
@@ -39,7 +39,8 @@ export const register = async (req, res) => {
                 id: newUser.rows[0].id_usuario,
                 nombre: newUser.rows[0].nombre,
                 email: newUser.rows[0].email,
-                rol: newUser.rows[0].rol
+                rol: newUser.rows[0].rol,
+                telefono: newUser.rows[0].telefono
             }
         });
     } catch (error) {
@@ -83,7 +84,8 @@ export const login = async (req, res) => {
                 id: unUsuario.id_usuario,
                 nombre: unUsuario.nombre,
                 email: unUsuario.email,
-                rol: unUsuario.rol
+                rol: unUsuario.rol,
+                telefono: unUsuario.telefono
             }
         });
 
@@ -136,7 +138,7 @@ export const getMe = async (req, res) => {
     try {
         const userId = req.usuario; // Extraído por authMiddleware
         
-        const userResult = await pool.query('SELECT id_usuario as id, nombre, email, rol FROM usuarios WHERE id_usuario = $1', [userId]);
+        const userResult = await pool.query('SELECT id_usuario as id, nombre, email, rol, telefono FROM usuarios WHERE id_usuario = $1', [userId]);
         
         if (userResult.rows.length === 0) {
             return res.status(404).json({ error: 'Usuario no encontrado' });

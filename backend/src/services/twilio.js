@@ -1,10 +1,13 @@
 import twilio from 'twilio';
 
+const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
 const twilioApiKeySid = process.env.TWILIO_API_KEY_SID;
 const twilioApiKeySecret = process.env.TWILIO_API_KEY_SECRET;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER || '+17409210911';
 
-const client = twilio(twilioApiKeySid, twilioApiKeySecret);
+const client = twilio(twilioApiKeySid, twilioApiKeySecret, {
+  accountSid: twilioAccountSid,
+});
 
 /**
  * Genera un código aleatorio de 6 dígitos

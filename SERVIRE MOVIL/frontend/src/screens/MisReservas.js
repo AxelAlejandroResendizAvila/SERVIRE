@@ -351,7 +351,7 @@ export default function MisReservas({ navigation, route }) {
                                     </View>
                                 </View>
 
-                                {(reservation.status === 'approved' || reservation.status === 'pending' || reservation.status === 'waitlisted') && !isReservationPast(reservation.date, reservation.time) && (
+                                {reservation.status === 'approved' && !isReservationPast(reservation.date, reservation.time) && (
                                     <CountdownTimer date={reservation.date} time={reservation.time} />
                                 )}
                             </View>

@@ -241,7 +241,35 @@ export const approveReservation = async (req, res) => {
             });
         }
 
+        // Aprobar la reserva
         await pool.query("UPDATE reservas SET estado = 'confirmada' WHERE id_reserva = $1", [id]);
+
+        // Auto-rechazar todas las demás reservas pendientes que colisionen con esta
+        const conflictingPendingQuery = `
+            SELECT id_reserva FROM reservas
+            WHERE id_espacio = $1
+            AND id_reserva != $2
+            AND estado = 'pendiente'
+            AND (fecha_inicio < $4 AND fecha_fin > $3)
+        `;
+        const conflictingPending = await pool.query(conflictingPendingQuery, [
+            reserva.id_espacio,
+            reserva.id_reserva,
+            reserva.fecha_inicio,
+            reserva.fecha_fin
+        ]);
+
+        // Rechazar cada reserva conflictiva con motivo
+        if (conflictingPending.rows.length > 0) {
+            const rejectionReason = 'Ya se ocupó este espacio en este horario';
+            for (const conflictingRes of conflictingPending.rows) {
+                await pool.query(
+                    "UPDATE reservas SET estado = 'cancelada', motivo_estado = $1 WHERE id_reserva = $2",
+                    [rejectionReason, conflictingRes.id_reserva]
+                );
+            }
+            console.log(`✅ Se rechazaron ${conflictingPending.rows.length} reservas pendientes en conflicto`);
+        }
 
         res.json({ success: true, message: 'Reserva aprobada exitosamente' });
     } catch (error) {

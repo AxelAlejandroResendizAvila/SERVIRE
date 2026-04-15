@@ -264,6 +264,11 @@ export default function Cuenta({ navigation }) {
                                 disabled={loadingPassword}
                             />
                         </AnimatedCard>
+                        <AnimatedCard animation="fadeUp" delay={450} duration={500}>
+                            <TouchableOpacity onPress={() => navigation.navigate('OlvideContrasenya')}>
+                                <Text style={styles.forgotPasswordLink}>¿Olvidaste tu contraseña?</Text>
+                            </TouchableOpacity>
+                        </AnimatedCard>
                     </View>
                 </AnimatedCard>
 
@@ -412,5 +417,13 @@ const styles = StyleSheet.create({
     },
     userText: {
         color: theme.colors.text.secondary,
+    },
+    forgotPasswordLink: {
+        textAlign: 'center',
+        color: theme.colors.secondary,
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: theme.spacing.md,
+        textDecorationLine: 'underline',
     }
 });

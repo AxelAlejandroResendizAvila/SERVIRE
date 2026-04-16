@@ -53,13 +53,29 @@ export default function FormularioReservas({ navigation, route }) {
     }, [error, shakeAnim]);
 
     // Formateadores para mostrar en los inputs
-    // Función para convertir fecha local a ISO string preservando la zona horaria
+    // Función para crear ISO string que preserve la hora local del usuario
     const toLocalISOString = (dateObj) => {
-        const offset = dateObj.getTimezoneOffset() * 60000;
-        return new Date(dateObj - offset).toISOString();
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const hours = String(dateObj.getHours()).padStart(2, '0');
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+        const ms = String(dateObj.getMilliseconds()).padStart(3, '0');
+        // Devuelve hora local como si fuera UTC: "2026-04-15T19:30:00.000Z"
+        // El backend entiende que esta es la hora local del usuario
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}Z`;
     };
 
-    const formattedDate = date.toISOString().split('T')[0];
+    // Función para obtener fecha local en formato YYYY-MM-DD sin convertir a UTC
+    const getLocalDateString = (dateObj) => {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const formattedDate = getLocalDateString(date);
     const formatTime = (d) => {
         let hours = d.getHours();
         const minutes = d.getMinutes().toString().padStart(2, '0');

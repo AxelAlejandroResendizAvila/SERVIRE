@@ -78,12 +78,12 @@ export const getMyReservations = async (req, res) => {
         r.id_espacio as "spaceId",
         e.nombre as "spaceName",
         ed.nombre as "buildingName",
-        TO_CHAR(r.fecha_inicio AT TIME ZONE 'UTC', 'YYYY-MM-DD') as date,
-        CONCAT(TO_CHAR(r.fecha_inicio AT TIME ZONE 'UTC', 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin AT TIME ZONE 'UTC', 'HH24:MI')) as time,
+        TO_CHAR(r.fecha_inicio, 'YYYY-MM-DD') as date,
+        CONCAT(TO_CHAR(r.fecha_inicio, 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin, 'HH24:MI')) as time,
         r.estado,
         r.fecha_inicio as "startDateRaw",
         r.fecha_fin as "endDateRaw",
-        TO_CHAR(r.fecha_creacion AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') as "createdAt",
+        TO_CHAR(r.fecha_creacion, 'YYYY-MM-DD HH24:MI') as "createdAt",
         r.motivo_estado,
         (
           SELECT COUNT(*) FROM reservas r2 
@@ -148,6 +148,7 @@ export const getAdminRequests = async (req, res) => {
         TO_CHAR(r.fecha_inicio AT TIME ZONE 'UTC', 'YYYY-MM-DD') as date,
         CONCAT(TO_CHAR(r.fecha_inicio AT TIME ZONE 'UTC', 'HH24:MI'), ' - ', TO_CHAR(r.fecha_fin AT TIME ZONE 'UTC', 'HH24:MI')) as time,
         TO_CHAR(r.fecha_creacion AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI') as "createdAt",
+        r.fecha_creacion as "createdAtRaw",
         r.estado,
         r.motivo_estado as "motivoEstado",
         r.fecha_inicio as "startDateRaw",

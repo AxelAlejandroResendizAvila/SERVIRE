@@ -53,6 +53,12 @@ export default function FormularioReservas({ navigation, route }) {
     }, [error, shakeAnim]);
 
     // Formateadores para mostrar en los inputs
+    // Función para convertir fecha local a ISO string preservando la zona horaria
+    const toLocalISOString = (dateObj) => {
+        const offset = dateObj.getTimezoneOffset() * 60000;
+        return new Date(dateObj - offset).toISOString();
+    };
+
     const formattedDate = date.toISOString().split('T')[0];
     const formatTime = (d) => {
         let hours = d.getHours();
@@ -250,8 +256,8 @@ export default function FormularioReservas({ navigation, route }) {
 
             const response = await createReservation({
                 id_espacio: space.id,
-                fecha_inicio: fechaInicio.toISOString(),
-                fecha_fin: fechaFin.toISOString(),
+                fecha_inicio: toLocalISOString(fechaInicio),
+                fecha_fin: toLocalISOString(fechaFin),
                 precio_total: 0,
             });
 

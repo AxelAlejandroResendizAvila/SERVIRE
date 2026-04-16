@@ -393,7 +393,7 @@ export default function MisReservas({ navigation, route }) {
                                 {reservation.createdAt && (
                                     <View style={styles.infoRow}>
                                         <Ionicons name="calendar-outline" size={14} color={theme.colors.text.secondary} />
-                                        <Text style={styles.infoText}>Solicitada: {String(reservation.createdAt).split(' ')[0]}</Text>
+                                        <Text style={styles.infoText}>Solicitada: {String(reservation.createdAt).split('T')[0].split(' ')[0]}</Text>
                                     </View>
                                 )}
 

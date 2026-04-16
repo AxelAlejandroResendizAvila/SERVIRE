@@ -9,7 +9,7 @@ import { getAdminRequests, approveReservation, declineReservation } from '../ser
 const formatRequestedDateOnly = (value) => {
     if (!value) return '—';
     const strValue = String(value).trim();
-    return strValue.split(' ')[0] || '—';
+    return strValue.split('T')[0].split(' ')[0] || '—';
 };
 
 // Función para convertir fecha ISO UTC a fecha local (YYYY-MM-DD)

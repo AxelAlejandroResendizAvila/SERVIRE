@@ -53,20 +53,6 @@ export default function FormularioReservas({ navigation, route }) {
     }, [error, shakeAnim]);
 
     // Formateadores para mostrar en los inputs
-    // Función para crear ISO string que preserve la hora local del usuario
-    const toLocalISOString = (dateObj) => {
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const hours = String(dateObj.getHours()).padStart(2, '0');
-        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-        const seconds = String(dateObj.getSeconds()).padStart(2, '0');
-        const ms = String(dateObj.getMilliseconds()).padStart(3, '0');
-        // Devuelve hora local como si fuera UTC: "2026-04-15T19:30:00.000Z"
-        // El backend entiende que esta es la hora local del usuario
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${ms}Z`;
-    };
-
     // Función para obtener fecha local en formato YYYY-MM-DD sin convertir a UTC
     const getLocalDateString = (dateObj) => {
         const year = dateObj.getFullYear();
@@ -272,8 +258,8 @@ export default function FormularioReservas({ navigation, route }) {
 
             const response = await createReservation({
                 id_espacio: space.id,
-                fecha_inicio: toLocalISOString(fechaInicio),
-                fecha_fin: toLocalISOString(fechaFin),
+                fecha_inicio: fechaInicio.toISOString(),
+                fecha_fin: fechaFin.toISOString(),
                 precio_total: 0,
             });
 

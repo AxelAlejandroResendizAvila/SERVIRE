@@ -14,26 +14,18 @@ export const createReservation = async (req, res) => {
         const end = fecha_fin || new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
         const now = new Date();
 
-        // La fecha recibida está en hora local del cliente (formato "YYYY-MM-DDTHH:MM:SS.000Z")
-        // Para comparar correctamente, necesitamos considerar que ambas son hora local equivalente
-        // Removemos la Z e interpretamos como hora local
-        const startLocalStr = start.replace('Z', '');
-        const endLocalStr = end.replace('Z', '');
-        const nowLocalStr = now.toISOString().split('.')[0];
-        
-        // Comparar como strings de hora local para validación
-        // Si la hora de inicio es menor que la hora actual (ambas en hora local), está en el pasado
-        if (startLocalStr < nowLocalStr) {
+        // Validar que la fecha de inicio no sea en el pasado
+        if (new Date(start) < now) {
             return res.status(400).json({ error: 'No puedes hacer reservas en fechas pasadas' });
         }
 
         // Validar que la fecha de fin no sea en el pasado
-        if (endLocalStr < nowLocalStr) {
+        if (new Date(end) < now) {
             return res.status(400).json({ error: 'La fecha de término no puede ser en el pasado' });
         }
 
         // Validar que inicio sea antes que fin
-        if (startLocalStr >= endLocalStr) {
+        if (new Date(start) >= new Date(end)) {
             return res.status(400).json({ error: 'La hora de inicio debe ser anterior a la de fin' });
         }
 

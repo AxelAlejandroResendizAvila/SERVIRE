@@ -193,6 +193,7 @@ export const getAdminRequests = async (req, res) => {
                 startDateRaw: row.startDateRaw,
                 endDateRaw: row.endDateRaw,
                 createdAt: row.createdAt,
+                createdAtRaw: row.createdAtRaw,
                 status,
                 motivo_rechazo: row.motivoEstado || null,
                 queuePosition: row.estado === 'pendiente' ? parseInt(row.queuePosition) : null

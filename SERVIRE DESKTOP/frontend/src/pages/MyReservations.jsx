@@ -150,7 +150,7 @@ const MyReservations = () => {
                                             {res.createdAt && (
                                                 <div className="flex items-center w-full sm:w-1/2 text-xs text-gray-500">
                                                     <Clock size={14} className="mr-2 text-gray-400" />
-                                                    <span>Solicitada: {new Date(res.createdAt).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span>Solicitada: {String(res.createdAt).split(' ')[0]}</span>
                                                 </div>
                                             )}
                                             <div className="flex items-center w-full sm:w-1/2">

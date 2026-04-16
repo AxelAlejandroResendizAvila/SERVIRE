@@ -5,6 +5,20 @@ import Button from '../components/UI/Button';
 import Modal from '../components/UI/Modal';
 import { getAdminRequests, approveReservation, declineReservation } from '../services/api';
 
+// Función para convertir fecha ISO UTC a fecha local (YYYY-MM-DD)
+const getLocalDateFromISO = (isoString) => {
+    if (!isoString) return '';
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' })
+            .split('/')
+            .reverse()
+            .join('-');
+    } catch (e) {
+        return '';
+    }
+};
+
 // Función para parsear fechas UTC correctamente (igual que en móbil)
 const parseUTCDate = (isoString) => {
     if (!isoString) return 0;
@@ -377,7 +391,7 @@ const AdminPanel = () => {
                                             </div>
                                         </td>
                                         <td className="py-4 px-6 text-gray-700 font-medium">{req.space}</td>
-                                        <td className="py-4 px-6 text-gray-600 text-sm">{req.date}</td>
+                                        <td className="py-4 px-6 text-gray-600 text-sm">{getLocalDateFromISO(req.startDateRaw)}</td>
                                         <td className="py-4 px-6 text-gray-600 text-sm">
                                             <div>
                                                 {formatLocalTime(req.time.split(' - ')[0])} - {formatLocalTime(req.time.split(' - ')[1])}

@@ -1,35 +1,179 @@
+<div align="center">
+
 # SERVIRE
 
-ES: Plataforma full stack para gestion de espacios y reservas con cliente web, cliente movil y API REST.
-EN: Full stack platform for space booking and management with a web client, mobile client, and REST API.
-**Demo access:**
-Use any email from the demo dataset and password:
+**ES:** Plataforma full stack para gestión de espacios y reservas con cliente web administrativo, cliente móvil y API REST.
+
+**EN:** Full stack platform for space booking and management with an admin web client, mobile client, and REST API.
+
+[![Live Demo](https://img.shields.io/badge/Web-Live%20Demo-black?style=for-the-badge&logo=vercel)](https://servire-tau.vercel.app)
+[![Download APK](https://img.shields.io/badge/Android-Download%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://expo.dev/artifacts/eas/gxqnkv6ZdFXtehrSzhKDFS.apk)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repositorio-181717?style=for-the-badge&logo=github)](https://github.com/AxelAlejandroResendizAvila/SERVIRE)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-NeonDB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+
+</div>
+
+---
+
+## 📱 Acceso Rápido / Quick Access
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <b>🌐 Web App (Vercel)</b><br/><br/>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://servire-tau.vercel.app" alt="QR Web App" width="180"/><br/><br/>
+      <a href="https://servire-tau.vercel.app">servire-tau.vercel.app</a>
+    </td>
+    <td width="80"></td>
+    <td align="center">
+      <b>📦 Android APK</b><br/><br/>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://expo.dev/artifacts/eas/gxqnkv6ZdFXtehrSzhKDFS.apk" alt="QR APK" width="180"/><br/><br/>
+      <a href="https://expo.dev/artifacts/eas/gxqnkv6ZdFXtehrSzhKDFS.apk">Descargar APK</a>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🔐 Credenciales de Demo / Demo Credentials
+
+| Rol / Role | Email | Contraseña / Password |
+|---|---|---|
+| 👑 Administrador | `admin@servire.com` | `Axel1234` |
+| 🛡️ Operador | `operador@servire.com` | `Axel1234` |
+| 👤 Usuario demo | Cualquier otro email del dataset | `123456` |
+
+---
+
+## ✨ Funcionalidades Destacadas / Key Features
+
+| Área | Funcionalidad |
+|---|---|
+| 🔐 **Seguridad** | RBAC granular con 3 roles, JWT por propósito, recuperación por SMS (Twilio) |
+| 📅 **Reservas** | Motor de conflictos de tiempo en UTC, cron de expiración cada 60s, fila de espera |
+| ⏱️ **UI en vivo** | Countdown regresivo para reservas activas en Web y App Móvil |
+| 📊 **Reportes** | Exportación a Excel/CSV y PDF con diseño corporativo via jsPDF |
+| 🖼️ **Media** | Galería dinámica por espacio con portada y carrusel — Cloudinary |
+| 🛡️ **Integridad** | `adminEnforcement.js` garantiza siempre un administrador activo en el sistema |
+
+---
+
+## 👥 Sistema de Roles / Role System (RBAC)
+
+### 👑 Administrador (Admin)
+
+- Gestión completa de espacios: crear, editar, eliminar, gestionar galería (Cloudinary).
+- Aprobar, rechazar y liberar reservas.
+- Bloquear / desbloquear y eliminar **cualquier** cuenta de usuario.
+- Asignar o modificar roles a cualquier usuario.
+- **Transferencia de Rol Admin** — acción irreversible con doble confirmación:
+
+  > El sistema exige escribir exactamente:
+  > ```
+  > Otorgo mi permiso a [nombre del usuario]
+  > ```
+  > y confirmar con contraseña. Al completar, **la sesión se cierra automáticamente** y el admin cede todos sus privilegios.
+
+- `adminEnforcement.js` garantiza que **siempre exista exactamente un administrador activo**, evitando bloqueos permanentes del sistema.
+
+---
+
+### 🛡️ Operador
+
+- Aprobar y rechazar reservas.
+- Bloquear / desbloquear usuarios base.
+- **No puede** afectar a otros operadores ni al administrador.
+- **No puede** crear, editar ni eliminar espacios.
+- **No puede** eliminar cuentas de usuario.
+
+---
+
+### 👤 Usuario Base
+
+- Acceso exclusivo a la App Móvil.
+- Explorar espacios disponibles y crear / cancelar sus propias reservas.
+- Ver su **posición exacta en la fila de espera** en tiempo real.
+- Gestionar perfil: nombre, teléfono y contraseña desde interfaz nativa.
+
+> ⚠️ Cuando un usuario es bloqueado, **todas sus reservas pendientes y confirmadas se cancelan automáticamente**.
+
+---
+
+## 🛡️ Seguridad / Security
+
+### Recuperación de contraseña por SMS (Twilio)
 
 ```
-Password: 123456
+Usuario solicita recuperación
+        ↓
+Backend genera código OTP de 6 dígitos
+        ↓
+Twilio envía SMS al número registrado
+        ↓
+Usuario ingresa el código en la app
+        ↓
+Backend emite JWT con { purpose: 'password_reset' }
+        ↓
+Usuario establece su nueva contraseña con el token válido
 ```
 
-Example users:
+- El JWT es de **propósito único** — no es válido para ninguna otra acción autenticada.
+- El código expira automáticamente para evitar reutilización.
 
-* [admin@servire.com](mailto:admin@servire.com)
-  
-## Recruiter Snapshot (ES/EN)
+---
 
-- ES: Proyecto ideal para perfil Intern TI con experiencia practica en arquitectura cloud, API design y clientes multiplataforma.
-- EN: Strong Intern IT portfolio project showing hands-on cloud architecture, API design, and multi-platform clients.
-- ES: Stack productivo: Neon + Render + Vercel + Cloudinary.
-- EN: Production-ready stack: Neon + Render + Vercel + Cloudinary.
+## 📅 Motor de Reservas / Reservation Engine
 
-## Demo Credentials (Admin)
+### Detección de conflictos de tiempo
 
-- Email: admin@servire.com
-- Password: 123456
+El backend valida en cada nueva solicitud que no exista solapamiento con reservas ya aprobadas en el mismo espacio, comparando `fecha_inicio` y `fecha_fin` en **UTC**. Si hay conflicto, la reserva es rechazada antes de persistirse.
 
-## Architecture
+### Ciclo de vida automatizado (Cron)
+
+```
+Cada 60 segundos:
+  → Detecta reservas aprobadas con fecha_fin vencida
+  → Las marca como 'completadas'
+  → Libera el espacio automáticamente
+```
+
+### Fila de espera (Waitlist)
+
+- El usuario puede unirse a la lista de espera de un espacio ocupado.
+- La App Móvil muestra la **posición exacta en la fila en tiempo real**.
+- Al liberarse el espacio, el primer usuario en fila puede tomar la reserva.
+
+### Countdown en vivo
+
+Web y App Móvil muestran un **temporizador regresivo** (`CountdownTimer`) para reservas activas próximas a vencer.
+
+---
+
+## 📊 Inteligencia de Negocio / Business Intelligence
+
+### Dashboard Web con Recharts
+
+Visualizaciones interactivas filtrables por periodo:
+
+- **Hoy / Semana / Mes / Año / Rango libre personalizado**
+- Tendencias de reservas en el tiempo
+- **Top 5** espacios más reservados vs. menos reservados
+
+### Exportación de Reportes
+
+| Formato | Herramienta | Contenido |
+|---|---|---|
+| **CSV / Excel** | Nativo | Metadatos del periodo, métricas de efectividad, desglose por estado |
+| **PDF** | jsPDF | Header oscuro, tablas estilizadas, métricas clave con diseño corporativo |
+
+---
+
+## 🏗️ Arquitectura / Architecture
 
 ```mermaid
 flowchart LR
-    U1[Web User] --> W[Vercel - React + Vite]
+    U1[Web Admin] --> W[Vercel - React + Vite]
     U2[Mobile User] --> M[Expo - React Native]
 
     W -->|HTTP /api| B[Render - Express API]
@@ -37,206 +181,299 @@ flowchart LR
 
     B -->|SQL| D[(Neon PostgreSQL)]
     B -->|Media Upload| C[Cloudinary]
+    B -->|SMS OTP| T[Twilio]
+    B -->|Cron 60s| B
 ```
 
-### Monorepo Structure
+### Estructura del monorepo / Monorepo Structure
 
-- backend/: Node.js + Express API, JWT auth, business logic, scheduled cleanup jobs.
-- SERVIRE DESKTOP/frontend/: React + Vite web app.
-- SERVIRE MOVIL/frontend/: React Native + Expo app.
+```
+SERVIRE/
+├── backend/
+│   ├── routes/           # Definición de endpoints
+│   ├── controllers/      # Lógica de negocio
+│   ├── middlewares/      # Auth, roles, adminEnforcement
+│   ├── seed.js           # Datos de prueba
+│   └── setup-admin.js    # Inicialización del administrador
+├── SERVIRE DESKTOP/
+│   └── frontend/         # React + Vite (Web Admin)
+└── SERVIRE MOVIL/
+    └── frontend/         # React Native + Expo (App Móvil)
+```
 
-## Technical Scope (ES/EN)
+---
 
-- ES: Autenticacion y autorizacion por roles con JWT (usuario/admin).
-- EN: Role-based authentication and authorization via JWT (user/admin).
-- ES: Gestion de espacios con soporte de imagen principal y galeria (Cloudinary).
-- EN: Space management with cover image and gallery support (Cloudinary).
-- ES: Flujo de reservas con estados y acciones administrativas.
-- EN: Reservation workflow with state transitions and admin actions.
-- ES: Proceso cron para expirar reservas, liberar espacios y limpiar datos antiguos.
-- EN: Cron process to expire reservations, release spaces, and clean old records.
+## 🛠️ Tech Stack
 
-## Backend API Overview
+| Capa | Tecnologías |
+|---|---|
+| **Backend** | Node.js, Express 5, pg, JWT, Multer, multer-storage-cloudinary, node-cron, CORS |
+| **Web** | React 19, Vite, React Router, Tailwind CSS 4, Recharts, jsPDF |
+| **Mobile** | React Native, Expo, React Navigation, AsyncStorage, AnimatedCard |
+| **Cloud** | Neon (PostgreSQL), Render (API), Vercel (Web), Cloudinary (Media), Twilio (SMS) |
 
-Base URL:
-- Web: ${VITE_API_URL}/api
-- Mobile: ${EXPO_PUBLIC_API_URL}
+---
 
-Main endpoints:
+## 🔌 API Overview
 
-1. Auth
-- POST /auth/register
-- POST /auth/login
-- POST /auth/change-password
-- GET /auth/me
-- GET /auth/users (admin)
-- PUT /auth/users/role (admin)
+**Base URL:**
+- Web: `${VITE_API_URL}/api`
+- Mobile: `${EXPO_PUBLIC_API_URL}`
 
-2. Spaces
-- GET /espacios/categorias
-- GET /espacios/edificios
-- GET /espacios
-- GET /espacios/:id
-- POST /espacios (admin, multipart)
-- PUT /espacios/:id (admin, multipart)
-- DELETE /espacios/imagen/:imageId (admin)
-- DELETE /espacios/:id (admin)
+<details>
+<summary><b>📋 Ver todos los endpoints / View all endpoints</b></summary>
 
-3. Reservations
-- GET /reservas/mis-reservas
-- GET /reservas/admin (admin)
-- POST /reservas
-- PUT /reservas/:id/aprobar (admin)
-- PUT /reservas/:id/rechazar (admin)
-- DELETE /reservas/:id
-- PUT /reservas/liberar/:spaceId (admin)
+### 1. Auth
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | `/auth/register` | Público |
+| POST | `/auth/login` | Público |
+| POST | `/auth/forgot-password` | Público — envía SMS |
+| POST | `/auth/verify-code` | Público |
+| POST | `/auth/change-password` | Token reset |
+| GET | `/auth/me` | Autenticado |
+| GET | `/auth/users` | Admin / Operador |
+| PUT | `/auth/users/role` | Admin |
 
-## Tech Stack
+### 2. Espacios / Spaces
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/espacios/categorias` | Autenticado |
+| GET | `/espacios/edificios` | Autenticado |
+| GET | `/espacios` | Autenticado |
+| GET | `/espacios/:id` | Autenticado |
+| POST | `/espacios` | Admin (multipart) |
+| PUT | `/espacios/:id` | Admin (multipart) |
+| DELETE | `/espacios/imagen/:imageId` | Admin |
+| DELETE | `/espacios/:id` | Admin |
 
-Backend:
-- Node.js, Express 5, pg, JWT, Multer, Cloudinary, dotenv, CORS
+### 3. Reservas / Reservations
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/reservas/mis-reservas` | Autenticado |
+| GET | `/reservas/admin` | Admin / Operador |
+| POST | `/reservas` | Autenticado |
+| PUT | `/reservas/:id/aprobar` | Admin / Operador |
+| PUT | `/reservas/:id/rechazar` | Admin / Operador |
+| DELETE | `/reservas/:id` | Autenticado |
+| PUT | `/reservas/liberar/:spaceId` | Admin |
 
-Web:
-- React 19, Vite, React Router, Tailwind CSS 4, Recharts
+### 4. Reportes / Reports
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | `/reportes/csv` | Admin |
+| GET | `/reportes/pdf` | Admin |
 
-Mobile:
-- React Native, Expo, React Navigation, AsyncStorage
+</details>
 
-## Environment Variables
+---
 
-Backend (backend/.env)
+## 📱 Mobile App Screens
+
+> Las imágenes están en `screenshots/mobile/`. Súbelas a tu repo o arrástralas a un Issue de GitHub para obtener las URLs.
+
+### 🔐 Autenticación / Auth
+
+<table>
+    <tr>
+        <td align="center">
+            <b>Iniciar Sesión</b><br/><br/>
+            <img src="screenshots/mobile/login.jpg" alt="Login" width="200"/>
+        </td>
+        <td align="center">
+            <b>Crear Cuenta</b><br/><br/>
+            <img src="screenshots/mobile/register.jpg" alt="Register" width="200"/>
+        </td>
+        <td align="center">
+            <b>Recuperar Contraseña</b><br/><br/>
+            <img src="screenshots/mobile/forgot-password.jpg" alt="Forgot Password" width="200"/>
+        </td>
+    </tr>
+</table>
+
+### 🏠 Inicio y Exploración
+
+<table>
+    <tr>
+        <td align="center">
+            <b>Inicio</b><br/><br/>
+            <img src="screenshots/mobile/home.jpg" alt="Home" width="200"/>
+        </td>
+        <td align="center">
+            <b>Explorar Espacios</b><br/><br/>
+            <img src="screenshots/mobile/explore.jpg" alt="Explore Spaces" width="200"/>
+        </td>
+        <td align="center">
+            <b>Información del Espacio</b><br/><br/>
+            <img src="screenshots/mobile/space-detail.jpg" alt="Space Detail" width="200"/>
+        </td>
+    </tr>
+</table>
+
+### 📅 Reservas
+
+<table>
+    <tr>
+        <td align="center">
+            <b>Nueva Reserva</b><br/>
+            <sub>Galería + fecha/hora + resumen</sub><br/><br/>
+            <img src="screenshots/mobile/new-reservation.jpg" alt="New Reservation" width="200"/>
+        </td>
+        <td align="center">
+            <b>Próximas</b><br/>
+            <sub>Countdown en vivo ⏱️</sub><br/><br/>
+            <img src="screenshots/mobile/reservations-upcoming.jpg" alt="Upcoming Reservations" width="200"/>
+        </td>
+        <td align="center">
+            <b>Historial</b><br/>
+            <sub>Reservas completadas</sub><br/><br/>
+            <img src="screenshots/mobile/reservations-history.jpg" alt="Reservation History" width="200"/>
+        </td>
+    </tr>
+</table>
+
+### 👤 Cuenta
+
+<table>
+    <tr>
+        <td align="center">
+            <b>Mi Cuenta</b><br/>
+            <sub>Perfil + cambio de contraseña</sub><br/><br/>
+            <img src="screenshots/mobile/account.jpg" alt="Account" width="200"/>
+        </td>
+    </tr>
+</table>
+
+---
+
+## ⚙️ Setup Local / Local Setup
+
+**Requisitos / Requirements:** Node.js 18+, pnpm
+
+### 1. Backend
+
+```bash
+cd backend
+cp .env.example .env   # Configura tus variables de entorno
+pnpm install
+pnpm dev
+```
+
+### 2. Web
+
+```bash
+cd "SERVIRE DESKTOP/frontend"
+cp .env.example .env
+pnpm install
+pnpm dev
+```
+
+### 3. Mobile
+
+```bash
+cd "SERVIRE MOVIL/frontend"
+cp .env.example .env
+pnpm install
+pnpm dev
+```
+
+---
+
+## 🌍 Variables de Entorno / Environment Variables
+
+### Backend (`backend/.env`)
 
 ```env
 PORT=3000
 DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB?sslmode=require
-
-# Optional local fallback (if DATABASE_URL is not set)
-DB_USER=postgres
-DB_HOST=localhost
-DB_NAME=pi_sdr1
-DB_PASSWORD=your_password
-DB_PORT=5432
 
 JWT_SECRET=change_this_in_production
 
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
 ```
 
-Web (SERVIRE DESKTOP/frontend/.env)
+### Web (`SERVIRE DESKTOP/frontend/.env`)
 
 ```env
 VITE_API_URL=https://your-backend.onrender.com
 ```
 
-Mobile (SERVIRE MOVIL/frontend/.env)
+### Mobile (`SERVIRE MOVIL/frontend/.env`)
 
 ```env
 EXPO_PUBLIC_API_URL=https://your-backend.onrender.com/api
 ```
 
-## Local Setup
+---
 
-Requirements:
-- Node.js 18+
-- pnpm
+## 🚀 Deployment (Neon + Render + Vercel + Cloudinary)
 
-1. Backend
+<details>
+<summary><b>Ver instrucciones de despliegue / View deployment instructions</b></summary>
 
-```bash
-cd backend
-pnpm install
-pnpm dev
-```
+### 1. Neon (Base de datos)
+- Crear proyecto PostgreSQL.
+- Copiar connection string como `DATABASE_URL` en Render.
+- Asegurar SSL habilitado (`sslmode=require`).
+- Ejecutar `seed.js` para datos de prueba y `setup-admin.js` para el admin inicial.
 
-2. Web
+### 2. Render (Backend)
+- Root: `backend`
+- Build: `pnpm install`
+- Start: `pnpm start`
+- Env vars requeridas: `PORT`, `DATABASE_URL`, `JWT_SECRET`, `CLOUDINARY_*`, `TWILIO_*`
 
-```bash
-cd "SERVIRE DESKTOP/frontend"
-pnpm install
-pnpm dev
-```
-
-3. Mobile
-
-```bash
-cd "SERVIRE MOVIL/frontend"
-pnpm install
-pnpm dev
-```
-
-## Deployment Notes (Neon + Render + Vercel + Cloudinary)
-
-1. Neon
-- Create PostgreSQL project.
-- Copy connection string into Render as DATABASE_URL.
-- Ensure SSL is enabled (sslmode=require).
-
-2. Render (backend)
-- Root: backend
-- Build: pnpm install
-- Start: pnpm start
-- Required env vars: PORT, DATABASE_URL, JWT_SECRET, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-
-3. Vercel (web)
-- Root: SERVIRE DESKTOP/frontend
+### 3. Vercel (Web)
+- Root: `SERVIRE DESKTOP/frontend`
 - Framework: Vite
-- Build: pnpm build
-- Output: dist
-- Env var: VITE_API_URL pointing to public Render URL (without /api)
+- Build: `pnpm build`
+- Output: `dist`
+- Env var: `VITE_API_URL` → URL pública de Render (sin `/api`)
 
-4. Cloudinary
-- Set credentials in Render.
-- Upload folder used by backend: servire.
+### 4. Cloudinary (Media)
+- Configurar credenciales en Render.
+- Carpeta de uploads usada por el backend: `servire`.
 
-## Why This Project Is Recruiter-Relevant
+</details>
 
-- ES: Muestra integracion real de servicios cloud y no solo desarrollo local.
-- EN: Demonstrates real cloud integration, not only local development.
-- ES: Incluye arquitectura multi-cliente (web + movil) conectada a una sola API.
-- EN: Includes multi-client architecture (web + mobile) backed by one API.
-- ES: Aplica buenas practicas de backend: capas por rutas/controladores/middlewares.
-- EN: Applies backend best practices: route/controller/middleware layering.
-- ES: Cubre autenticacion, autorizacion, persistencia, archivos y automatizacion de limpieza.
-- EN: Covers authentication, authorization, persistence, media handling, and automated cleanup jobs.
+---
 
-## Suggested Next Improvements
+## 🔮 Mejoras Sugeridas / Suggested Improvements
 
-1. Add .env.example files for backend, web, and mobile.
-2. Add automated tests for auth and reservation flows.
-3. Remove insecure JWT fallback secret in production.
-4. Add SQL migrations and seed strategy for reproducible environments.
-5. Add CI pipeline for lint + build + smoke tests.
+- [ ] Añadir archivos `.env.example` para backend, web y móvil.
+- [ ] Implementar tests automatizados para flujos de auth, reservas y reportes.
+- [ ] Agregar migraciones SQL y estrategia de seeds versionada.
+- [ ] Configurar pipeline CI con lint + build + smoke tests.
+- [ ] Notificaciones push en App Móvil para cambios de estado en reservas.
+- [ ] Rate limiting en endpoints de auth para protección contra fuerza bruta.
+- [ ] Eliminar el fallback inseguro de JWT secret en producción.
 
-## License
+---
 
-Pending selection by project owner (recommended: MIT).
+## 👨‍💻 Equipo / Team
 
-## Mobile App Screens (ES/EN)
+| # | GitHub | Commits | Líneas añadidas |
+|---|---|---|---|
+| 1 | [@AxelAlejandroResendizAvila](https://github.com/AxelAlejandroResendizAvila) | 59 | 39,985 |
+| 2 | [@ZzyzzMolina](https://github.com/ZzyzzMolina) | 22 | 21,979 |
+| 3 | [@AlejandroMaldonadoMoreno](https://github.com/AlejandroMaldonadoMoreno) | 11 | 1,650 |
+| 4 | [@124050316-ship-it](https://github.com/124050316-ship-it) | 2 | 1 |
+| 5 | [@jorgerangel09](https://github.com/jorgerangel09) | 2 | 303 |
 
-ES: Vista rapida de pantallas principales de la app movil.
-EN: Quick preview of key mobile app screens.
+---
 
-<table>
-    <tr>
-        <td align="center">
-            <b>Main / Inicio</b><br/>
-            <img src="https://github.com/user-attachments/assets/a8e0afb0-737f-4676-99a0-06bd829a542a" alt="Main screen" width="220"/>
-        </td>
-        <td align="center">
-            <b>My Reservations / Mis Reservas</b><br/>
-            <img src="https://github.com/user-attachments/assets/590f30c8-3e5b-4b2a-9877-5e77a1dc6026" alt="My reservations screen" width="220"/>
-        </td>
-    </tr>
-    <tr>
-        <td align="center">
-            <b>Spaces / Espacios</b><br/>
-            <img src="https://github.com/user-attachments/assets/3777a2aa-cc5b-4cc0-8a88-6c66bfb8e591" alt="Spaces screen" width="220"/>
-        </td>
-        <td align="center">
-            <b>Account / Cuenta</b><br/>
-            <img src="https://github.com/user-attachments/assets/9d9b2916-829a-4a5b-bef0-2361f05d7539" alt="Account screen" width="220"/>
-        </td>
-    </tr>
-</table>
+## 📄 Licencia / License
+
+Pendiente de selección por el propietario del proyecto — se recomienda **MIT**.
+
+---
+
+<div align="center">
+  <sub>Built with ☕ by the SERVIRE team · 2025</sub>
+</div>

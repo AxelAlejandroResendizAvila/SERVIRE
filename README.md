@@ -1,3 +1,13 @@
+<img width="720" height="2437" alt="1000129694" src="https://github.com/user-attachments/assets/29ec195b-e698-459c-b5ae-bd0fe19d045b" />
+<img width="720" height="2874" alt="1000129696" src="https://github.com/user-attachments/assets/dc5cf562-0c24-4761-96c3-2a7cadd6a93a" />
+<img width="720" height="1560" alt="1000129698" src="https://github.com/user-attachments/assets/986a0164-77db-4a3e-9a76-fef08e156579" />
+<img width="720" height="1832" alt="1000129692" src="https://github.com/user-attachments/assets/d27b3bd0-f00c-49a6-9160-db51232b0844" />
+<img width="720" height="2869" alt="1000129700" src="https://github.com/user-attachments/assets/e7a41b38-475d-4f5d-8ce9-39d3d366ccb6" />
+<img width="720" height="1560" alt="1000129706" src="https://github.com/user-attachments/assets/cf1c9c6c-eea9-4cd6-abb3-1c90bf164c5b" />
+<img width="720" height="1560" alt="1000129702" src="https://github.com/user-attachments/assets/891994f3-fe71-40e9-bfb5-901394fae7b8" />
+<img width="720" height="1855" alt="1000129708" src="https://github.com/user-attachments/assets/f1fe5e11-a633-449e-856e-77aa31630af3" />
+<img width="720" height="1560" alt="1000129710" src="https://github.com/user-attachments/assets/08698008-c7b6-4886-bcf7-90effbf52b71" />
+<img width="720" height="2351" alt="1000129704" src="https://github.com/user-attachments/assets/0738cb8e-45f8-4ea9-91d9-8e6eccca6c7d" />
 <div align="center">
 
 # SERVIRE
